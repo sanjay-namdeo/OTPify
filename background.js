@@ -227,14 +227,30 @@ try {
   
   // Listen for alarms
   browserAPI.alarms.onAlarm.addListener((alarm) => {
-    // Refresh tokens
-    if (alarm.name === "refreshTokens") {
-      sendMessageToPopupSafely({ action: "refreshTokens" });
-    }
-    
-    // Auto-lock
-    if (alarm.name === "autoLock") {
-      sendMessageToPopupSafely({ action: "autoLock" });
+    try {
+      // Refresh tokens
+      if (alarm.name === "refreshTokens") {
+        // Try to send message to popup if it's open
+        sendMessageToPopupSafely({ action: "refreshTokens" });
+        
+        // Also dispatch a custom event which the popup can listen for
+        // This is a more reliable way to update tokens across different browser implementations
+        try {
+          const views = browserAPI.extension.getViews({ type: 'popup' });
+          if (views && views.length > 0) {
+            views[0].dispatchEvent(new CustomEvent('refreshTokens'));
+          }
+        } catch (error) {
+          console.log('Error dispatching refresh event:', error);
+        }
+      }
+      
+      // Auto-lock
+      if (alarm.name === "autoLock") {
+        sendMessageToPopupSafely({ action: "autoLock" });
+      }
+    } catch (error) {
+      console.error('Error in alarm listener:', error);
     }
   });
   

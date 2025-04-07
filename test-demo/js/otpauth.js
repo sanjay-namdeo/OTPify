@@ -1,187 +1,238 @@
 /**
- * Custom OTPAuth library implementation
- * This is a simplified version of the OTPAuth library for TOTP generation
+ * OTPAuth Library
+ * Lightweight implementation for generating TOTP tokens
  */
 
-(function(global) {
+const OTPAuth = (function() {
   /**
-   * Simple implementation of base32 encoding/decoding
+   * Base32 utility functions
    */
   const Base32 = {
-    // Base32 alphabet (RFC 4648)
-    ALPHABET: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',
+    /**
+     * RFC 4648 base32 alphabet without padding
+     */
+    alphabet: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567',
     
     /**
-     * Check if a string is a valid Base32 string
-     * @param {string} str - The string to check
-     * @returns {boolean} - Whether the string is valid Base32
+     * Decode a base32 string into a Uint8Array
+     * @param {string} encoded - The base32 encoded string
+     * @returns {Uint8Array} - The decoded bytes
      */
-    isValid(str) {
-      const normalized = str.replace(/\s/g, '').toUpperCase();
-      const base32Regex = /^[A-Z2-7]+=*$/i;
-      const validLength = normalized.length % 8 === 0 || 
-                        (normalized.endsWith('=') && normalized.indexOf('=') > normalized.length - 7);
-      return base32Regex.test(normalized) && validLength;
-    },
-
-    /**
-     * Decode base32 string to byte array
-     * @param {string} str - Base32 string
-     * @returns {Uint8Array} - Decoded bytes
-     */
-    decode(str) {
-      // Simple implementation for the demo
-      const normalized = str.replace(/\s/g, '').toUpperCase();
-      const bytes = [];
-      let buffer = 0;
-      let bitsLeft = 0;
+    decode: function(encoded) {
+      // Remove whitespace and convert to uppercase
+      encoded = encoded.trim().toUpperCase();
       
-      for (let i = 0; i < normalized.length; i++) {
-        if (normalized[i] === '=') continue;
-        
-        const value = this.ALPHABET.indexOf(normalized[i]);
-        if (value === -1) throw new Error('Invalid character in Base32 string');
-        
-        buffer = (buffer << 5) | value;
-        bitsLeft += 5;
-        
-        if (bitsLeft >= 8) {
-          bitsLeft -= 8;
-          bytes.push((buffer >> bitsLeft) & 0xff);
-        }
+      // Remove padding if present
+      encoded = encoded.replace(/=+$/, '');
+      
+      // Canonicalize: remove all characters that aren't in the alphabet
+      encoded = encoded.split('')
+        .filter(char => this.alphabet.includes(char))
+        .join('');
+      
+      if (encoded.length === 0) {
+        return new Uint8Array(0);
       }
       
-      return new Uint8Array(bytes);
+      // Convert from base32 alphabet to 5-bit binary
+      const bits = encoded.split('')
+        .map(char => this.alphabet.indexOf(char).toString(2).padStart(5, '0'))
+        .join('');
+      
+      // Convert from binary to bytes
+      const bytes = new Uint8Array(Math.floor(bits.length / 8));
+      for (let i = 0; i < bytes.length; i++) {
+        const byteStart = i * 8;
+        const byte = bits.slice(byteStart, byteStart + 8);
+        bytes[i] = parseInt(byte, 2);
+      }
+      
+      return bytes;
     }
   };
-
+  
   /**
-   * Simple HMAC implementation for the demo
-   * @param {Uint8Array} key - Secret key
-   * @param {Uint8Array} message - Message to authenticate
-   * @returns {Uint8Array} - HMAC digest
-   */
-  function generateHMAC(key, message) {
-    // For demo purposes, we're using a simple hash function
-    const combined = new Uint8Array(key.length + message.length);
-    combined.set(key);
-    combined.set(message, key.length);
-    
-    // Simple hash function
-    let hash = 0;
-    for (let i = 0; i < combined.length; i++) {
-      hash = ((hash << 5) - hash) + combined[i];
-      hash |= 0; // Convert to 32bit integer
-    }
-    
-    // Generate a predictable sequence of bytes from the hash
-    const result = new Uint8Array(20); // SHA1 digest length
-    for (let i = 0; i < result.length; i++) {
-      result[i] = (hash >> ((i % 4) * 8)) & 0xff;
-    }
-    
-    return result;
-  }
-
-  /**
-   * Generate HOTP code
-   * @param {Secret} secret - Secret key
-   * @param {number} counter - Counter value
-   * @param {number} digits - Number of digits
-   * @returns {string} - Generated OTP
-   */
-  function generateHOTP(secret, counter, digits = 6) {
-    // Convert counter to byte array (big-endian)
-    const counterBytes = new Uint8Array(8);
-    let temp = counter;
-    for (let i = counterBytes.length - 1; i >= 0; i--) {
-      counterBytes[i] = temp & 0xff;
-      temp = temp >> 8;
-    }
-    
-    // Generate HMAC
-    const hmac = generateHMAC(secret.buffer, counterBytes);
-    
-    // Dynamic truncation
-    const offset = hmac[hmac.length - 1] & 0xf;
-    const binary = ((hmac[offset] & 0x7f) << 24) |
-                  ((hmac[offset + 1] & 0xff) << 16) |
-                  ((hmac[offset + 2] & 0xff) << 8) |
-                  (hmac[offset + 3] & 0xff);
-    
-    // Get the specified number of digits
-    const otp = binary % Math.pow(10, digits);
-    
-    // Pad with leading zeros if needed
-    return otp.toString().padStart(digits, '0');
-  }
-
-  /**
-   * Secret class for handling OTP secrets
+   * Secret key class for TOTP
    */
   class Secret {
     /**
-     * Create a secret from base32 string
-     * @param {string} base32 - Base32 encoded secret
-     * @returns {Secret} - Secret instance
+     * Create a new secret from a base32 string
+     * @param {string} base32 - Base32-encoded secret
+     * @returns {Secret} - A new Secret instance
      */
     static fromBase32(base32) {
-      if (!Base32.isValid(base32)) {
-        throw new Error('Invalid Base32 string');
-      }
-      
-      const buffer = Base32.decode(base32);
-      return new Secret(buffer);
+      return new Secret(Base32.decode(base32));
     }
-
+    
     /**
      * Create a new secret
-     * @param {Uint8Array} buffer - Secret bytes
+     * @param {Uint8Array} buffer - The secret bytes
      */
     constructor(buffer) {
       this.buffer = buffer;
     }
   }
-
+  
   /**
-   * TOTP class for generating time-based one-time passwords
+   * TOTP Implementation
    */
   class TOTP {
     /**
-     * Create a new TOTP instance
-     * @param {Object} options - TOTP options
-     * @param {Secret} options.secret - Secret key
-     * @param {string} [options.algorithm='SHA1'] - Hash algorithm (ignored in this demo)
-     * @param {number} [options.digits=6] - Number of digits
-     * @param {number} [options.period=30] - Time period in seconds
-     * @param {string} [options.issuer=''] - Token issuer
-     * @param {string} [options.label=''] - Token label/account
+     * Create a new TOTP generator
+     * @param {Object} options - Configuration options
+     * @param {Secret} options.secret - The secret key
+     * @param {string} [options.algorithm='SHA-1'] - Hash algorithm (SHA-1, SHA-256, SHA-512)
+     * @param {number} [options.digits=6] - Number of digits in the OTP
+     * @param {number} [options.period=30] - Token validity period in seconds
+     * @param {string} [options.issuer=''] - Account provider name
+     * @param {string} [options.label=''] - Account identifier (typically username)
      */
-    constructor(options) {
-      this.secret = options.secret;
-      this.digits = options.digits || 6;
-      this.period = options.period || 30;
-      this.issuer = options.issuer || '';
-      this.label = options.label || '';
+    constructor({
+      secret,
+      algorithm = 'SHA-1',
+      digits = 6,
+      period = 30,
+      issuer = '',
+      label = ''
+    }) {
+      this.secret = secret;
+      this.algorithm = algorithm;
+      this.digits = digits;
+      this.period = period;
+      this.issuer = issuer;
+      this.label = label;
     }
-
+    
     /**
-     * Generate TOTP for a specific timestamp
+     * Generate a TOTP token
      * @param {Object} [options] - Generation options
-     * @param {number} [options.timestamp=Date.now()] - Timestamp in milliseconds
-     * @returns {string} - Generated TOTP
+     * @param {number} [options.timestamp=Date.now()] - Timestamp to generate token for
+     * @returns {string} - The generated TOTP token
      */
-    generate(options = {}) {
-      const timestamp = options.timestamp || Date.now();
+    generate({timestamp = Date.now()} = {}) {
+      // Calculate the counter value (RFC 6238)
       const counter = Math.floor(timestamp / 1000 / this.period);
-      return generateHOTP(this.secret, counter, this.digits);
+      
+      // Convert counter to buffer
+      const buffer = new ArrayBuffer(8);
+      const view = new DataView(buffer);
+      
+      // Set as big-endian 64-bit integer
+      view.setBigUint64(0, BigInt(counter), false);
+      
+      // Calculate HMAC
+      const signature = this._calculateHMAC(this.secret.buffer, new Uint8Array(buffer));
+      
+      // Dynamic truncation (RFC 4226)
+      const offset = signature[signature.length - 1] & 0x0f;
+      const binary = ((signature[offset] & 0x7f) << 24) |
+                    ((signature[offset + 1] & 0xff) << 16) |
+                    ((signature[offset + 2] & 0xff) << 8) |
+                    (signature[offset + 3] & 0xff);
+      
+      // Truncate to required number of digits
+      const token = binary % Math.pow(10, this.digits);
+      
+      // Convert to string and pad with leading zeros if needed
+      return token.toString().padStart(this.digits, '0');
+    }
+    
+    /**
+     * Calculate HMAC for TOTP
+     * @param {Uint8Array} key - The secret key
+     * @param {Uint8Array} message - The message to authenticate
+     * @returns {Uint8Array} - The HMAC result
+     * @private
+     */
+    _calculateHMAC(key, message) {
+      // In a production environment, use the Web Crypto API
+      // This is a simplified implementation for the demo
+      
+      // Determine block size based on algorithm
+      const blockSize = this.algorithm.includes('512') ? 128 : 64;
+      
+      // Create outer and inner padding arrays
+      const outerPadding = new Uint8Array(blockSize);
+      const innerPadding = new Uint8Array(blockSize);
+      
+      // Prepare the key
+      let keyToUse = key;
+      if (key.length > blockSize) {
+        // Hash the key if it's too long
+        keyToUse = this._simpleHash(key);
+      }
+      
+      // Create the paddings
+      for (let i = 0; i < blockSize; i++) {
+        outerPadding[i] = 0x5c ^ (i < keyToUse.length ? keyToUse[i] : 0);
+        innerPadding[i] = 0x36 ^ (i < keyToUse.length ? keyToUse[i] : 0);
+      }
+      
+      // Create inner message
+      const innerMessage = new Uint8Array(innerPadding.length + message.length);
+      innerMessage.set(innerPadding);
+      innerMessage.set(message, innerPadding.length);
+      
+      // Hash inner message
+      const innerHash = this._simpleHash(innerMessage);
+      
+      // Create outer message
+      const outerMessage = new Uint8Array(outerPadding.length + innerHash.length);
+      outerMessage.set(outerPadding);
+      outerMessage.set(innerHash, outerPadding.length);
+      
+      // Return hash of outer message
+      return this._simpleHash(outerMessage);
+    }
+    
+    /**
+     * Simple hash implementation (for demo purposes only)
+     * @param {Uint8Array} data - Data to hash
+     * @returns {Uint8Array} - Hash result
+     * @private
+     */
+    _simpleHash(data) {
+      // This is a simplified hash for demonstration purposes
+      // In a real implementation, use the Web Crypto API
+      const hashLength = this.algorithm.includes('512') ? 64 : 
+                       this.algorithm.includes('384') ? 48 :
+                       this.algorithm.includes('256') ? 32 : 20;
+      
+      const result = new Uint8Array(hashLength);
+      
+      // Very simple hash function (not cryptographically secure)
+      let h1 = 0x67452301;
+      let h2 = 0xEFCDAB89;
+      let h3 = 0x98BADCFE;
+      let h4 = 0x10325476;
+      let h5 = 0xC3D2E1F0;
+      
+      for (let i = 0; i < data.length; i++) {
+        h1 = (h1 + data[i]) % 0xFFFFFFFF;
+        h2 = (h2 * data[i] + h1) % 0xFFFFFFFF;
+        h3 = (h3 ^ h2) % 0xFFFFFFFF;
+        h4 = (h4 + h3) % 0xFFFFFFFF;
+        h5 = (h5 ^ h4 ^ h1) % 0xFFFFFFFF;
+      }
+      
+      // Convert the hash values to bytes and store in the result
+      for (let i = 0; i < 4; i++) {
+        result[i] = (h1 >> (i * 8)) & 0xFF;
+        result[i + 4] = (h2 >> (i * 8)) & 0xFF;
+        result[i + 8] = (h3 >> (i * 8)) & 0xFF;
+        result[i + 12] = (h4 >> (i * 8)) & 0xFF;
+        if (i + 16 < result.length) {
+          result[i + 16] = (h5 >> (i * 8)) & 0xFF;
+        }
+      }
+      
+      return result;
     }
   }
-
-  // Export OTPAuth to global scope
-  global.OTPAuth = {
+  
+  // Export public API
+  return {
     TOTP,
     Secret
   };
-
-})(typeof window !== 'undefined' ? window : global);
+})();

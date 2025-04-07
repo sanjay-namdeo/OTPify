@@ -40,8 +40,29 @@ export const getTokens = async () => {
       return [];
     }
     
-    const result = await storage.get('tokens');
-    return result.tokens || [];
+    // Handle both Promise-based (Firefox) and callback-based (Chrome) storage APIs
+    if (typeof browser !== 'undefined') {
+      // Firefox Promise-based implementation
+      try {
+        const result = await storage.get('tokens');
+        return result.tokens || [];
+      } catch (error) {
+        console.error('Error retrieving tokens from browser storage:', error);
+        return [];
+      }
+    } else {
+      // Chrome callback-based implementation
+      return new Promise((resolve) => {
+        storage.get('tokens', (result) => {
+          if (chrome.runtime.lastError) {
+            console.error('Error retrieving tokens:', chrome.runtime.lastError);
+            resolve([]);
+          } else {
+            resolve(result.tokens || []);
+          }
+        });
+      });
+    }
   } catch (error) {
     console.error('Error retrieving tokens:', error);
     return [];

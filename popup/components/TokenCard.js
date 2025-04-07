@@ -10,6 +10,8 @@ const TokenCard = ({ token }) => {
   
   // Generate tokens and update at regular intervals
   useEffect(() => {
+    let isMounted = true; // Flag to prevent state updates after unmount
+    
     const generateTokens = () => {
       // Get current time in seconds
       const now = Math.floor(Date.now() / 1000);
@@ -20,15 +22,29 @@ const TokenCard = ({ token }) => {
       const nextTimestamp = (currentPeriod + 1) * secondsInPeriod;
       const remaining = nextTimestamp - now;
       
-      setTimeRemaining(remaining);
+      if (isMounted) {
+        setTimeRemaining(remaining);
+      }
       
-      // Generate current token
-      const current = generateToken(token, currentPeriod);
-      setCurrentToken(current);
-      
-      // Generate next token
-      const next = generateToken(token, currentPeriod + 1);
-      setNextToken(next);
+      try {
+        // Generate current token - assume synchronous for now
+        const current = generateToken(token, currentPeriod);
+        if (isMounted) {
+          setCurrentToken(current || '------');
+        }
+        
+        // Generate next token - assume synchronous for now
+        const next = generateToken(token, currentPeriod + 1);
+        if (isMounted) {
+          setNextToken(next || '------');
+        }
+      } catch (error) {
+        console.error('Error generating tokens in TokenCard:', error);
+        if (isMounted) {
+          setCurrentToken('------');
+          setNextToken('------');
+        }
+      }
     };
     
     // Generate tokens immediately
@@ -36,17 +52,23 @@ const TokenCard = ({ token }) => {
     
     // Set up interval to update time remaining every second
     const interval = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          // When time expires, regenerate tokens
-          generateTokens();
-          return 30;
-        }
-        return prev - 1;
-      });
+      if (isMounted) {
+        setTimeRemaining(prev => {
+          if (prev <= 1) {
+            // When time expires, regenerate tokens
+            generateTokens();
+            return 30;
+          }
+          return prev - 1;
+        });
+      }
     }, 1000);
     
-    return () => clearInterval(interval);
+    // Cleanup function to prevent memory leaks
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
   }, [token]);
   
   return (

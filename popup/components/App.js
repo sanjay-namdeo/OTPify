@@ -11,12 +11,31 @@ const App = () => {
 
   // Load tokens from storage when component mounts
   useEffect(() => {
-    const loadTokens = async () => {
-      const storedTokens = await getTokens();
-      setTokens(storedTokens || []);
-      setLoading(false);
+    let isMounted = true; // Flag to prevent state updates after unmount
+    
+    const loadTokens = () => {
+      setLoading(true);
+      
+      // Using Promise then/catch instead of async/await to avoid React error #31
+      getTokens()
+        .then(storedTokens => {
+          // Only update state if the component is still mounted
+          if (isMounted) {
+            setTokens(storedTokens || []);
+            setLoading(false);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading tokens in App component:', error);
+          // Only update state if the component is still mounted
+          if (isMounted) {
+            setTokens([]);
+            setLoading(false);
+          }
+        });
     };
     
+    // Initial load
     loadTokens();
     
     // Listen for token refresh events
@@ -26,7 +45,9 @@ const App = () => {
     
     window.addEventListener('refreshTokens', handleRefresh);
     
+    // Cleanup function
     return () => {
+      isMounted = false; // Prevent state updates after unmount
       window.removeEventListener('refreshTokens', handleRefresh);
     };
   }, []);
@@ -41,8 +62,10 @@ const App = () => {
     </svg>
   );
   
-  const handleAddToken = async (newToken) => {
-    setTokens([...tokens, newToken]);
+  const handleAddToken = (newToken) => {
+    // Using Promise .then syntax instead of async/await to avoid React error #31
+    // Update local state immediately for a responsive UI
+    setTokens(prevTokens => [...prevTokens, newToken]);
     setShowAddForm(false);
   };
   
