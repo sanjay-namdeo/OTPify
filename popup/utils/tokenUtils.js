@@ -11,14 +11,25 @@ export const generateToken = (token, period) => {
       return '------';
     }
     
+    // Make sure we return a string directly, not a Promise
+    let result;
+    
     if (token.type === 'TOTP') {
-      return generateTOTPToken(token, period);
+      result = generateTOTPToken(token, period);
     } else if (token.type === 'RSA') {
-      return generateRSAToken(token);
+      result = generateRSAToken(token);
     } else {
       console.warn(`Unknown token type: ${token.type}`);
+      result = '------';
+    }
+    
+    // If result is a Promise (shouldn't be, but just in case), return placeholder
+    if (result && typeof result.then === 'function') {
+      console.error('Token generation returned a Promise instead of a string');
       return '------';
     }
+    
+    return result || '------';
   } catch (error) {
     console.error('Error in generateToken:', error);
     return '------'; // Visual indication of error
@@ -141,6 +152,9 @@ export const getNextToken = (token) => {
       return '------';
     }
     
+    // Store result to check if it's a Promise
+    let result;
+    
     if (token.type === 'TOTP') {
       try {
         // For TOTP, calculate the next time period
@@ -154,30 +168,29 @@ export const getNextToken = (token) => {
         
         // For fallback implementation (if needed)
         if (typeof OTPAuth === 'undefined') {
-          return generateFallbackTOTP(token.secret, token.digits || 6, period);
-        }
-        
-        try {
-          // Create a new TOTP object
-          const totp = new OTPAuth.TOTP({
-            issuer: token.issuer || '',
-            label: token.account || '',
-            algorithm: token.algorithm || 'SHA1',
-            digits: token.digits || 6,
-            period: period,
-            secret: OTPAuth.Secret.fromBase32(token.secret)
-          });
-          
-          // Generate token for next time period
-          const nextToken = totp.generate({ timestamp: nextTimestamp });
-          return nextToken || '------';
-        } catch (error) {
-          console.error('Error generating next TOTP with library:', error);
-          return generateFallbackTOTP(token.secret, token.digits || 6, period);
+          result = generateFallbackTOTP(token.secret, token.digits || 6, period);
+        } else {
+          try {
+            // Create a new TOTP object
+            const totp = new OTPAuth.TOTP({
+              issuer: token.issuer || '',
+              label: token.account || '',
+              algorithm: token.algorithm || 'SHA1',
+              digits: token.digits || 6,
+              period: period,
+              secret: OTPAuth.Secret.fromBase32(token.secret)
+            });
+            
+            // Generate token for next time period
+            result = totp.generate({ timestamp: nextTimestamp });
+          } catch (error) {
+            console.error('Error generating next TOTP with library:', error);
+            result = generateFallbackTOTP(token.secret, token.digits || 6, period);
+          }
         }
       } catch (error) {
         console.error('Error generating next TOTP token:', error);
-        return '------'; // Visual indication of error
+        result = '------'; // Visual indication of error
       }
     } else if (token.type === 'RSA') {
       // For RSA, use the getNextTokenCode method
@@ -185,21 +198,29 @@ export const getNextToken = (token) => {
         // Check if RSASecurID is defined
         if (typeof RSASecurID === 'undefined' || !RSASecurID.TokenGenerator) {
           console.error('RSASecurID library not available for next token');
-          return '------';
+          result = '------';
+        } else {
+          const algorithm = token.algorithm || 'SHA-256';
+          const generator = new RSASecurID.TokenGenerator(token.secret, algorithm);
+          const nextCode = generator.getNextTokenCode();
+          result = nextCode || '------';
         }
-        
-        const algorithm = token.algorithm || 'SHA-256';
-        const generator = new RSASecurID.TokenGenerator(token.secret, algorithm);
-        const nextCode = generator.getNextTokenCode();
-        return nextCode || '------';
       } catch (error) {
         console.error('Error generating next RSA token:', error);
-        return '------'; // Visual indication of error
+        result = '------'; // Visual indication of error
       }
     } else {
       console.warn(`Unknown token type for next token: ${token.type}`);
+      result = '------';
+    }
+    
+    // If result is a Promise (shouldn't be, but just in case), return placeholder
+    if (result && typeof result.then === 'function') {
+      console.error('Next token generation returned a Promise instead of a string');
       return '------';
     }
+    
+    return result || '------';
   } catch (error) {
     console.error('Unexpected error in getNextToken:', error);
     return '------';
