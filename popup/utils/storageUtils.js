@@ -1,4 +1,49 @@
 /**
+ * Get storage API (supports both Firefox and Chrome)
+ * @returns {Object} - The browser storage API
+ */
+const getStorage = () => {
+  return browser?.storage?.sync || chrome?.storage?.sync;
+};
+
+/**
+ * Checks if a master password has been set up
+ * @returns {Promise<boolean>} - Whether a master password exists
+ */
+export const checkMasterPasswordExists = async () => {
+  try {
+    const storage = getStorage();
+    
+    if (!storage) {
+      console.error('Browser storage API not available');
+      return false;
+    }
+    
+    // Handle both Promise-based (Firefox) and callback-based (Chrome) storage APIs
+    if (typeof browser !== 'undefined') {
+      // Firefox Promise-based implementation
+      const result = await storage.get('passwordHash');
+      return !!result.passwordHash;
+    } else {
+      // Chrome callback-based implementation
+      return new Promise((resolve) => {
+        storage.get('passwordHash', (result) => {
+          if (chrome.runtime.lastError) {
+            console.error('Error checking password existence:', chrome.runtime.lastError);
+            resolve(false);
+          } else {
+            resolve(!!result.passwordHash);
+          }
+        });
+      });
+    }
+  } catch (error) {
+    console.error('Error checking password existence:', error);
+    return false;
+  }
+};
+
+/**
  * Securely saves a token using browser storage
  * @param {Object} token - The token to save
  * @returns {Promise<boolean>} - Whether the save was successful
@@ -16,10 +61,14 @@ export const saveToken = async (token) => {
     
     tokens.push(newToken);
     
-    // Save back to storage
-    await browser.storage.sync.set({ tokens });
+    // Since tokens are now encrypted in the background script,
+    // we send a message to background script to save tokens
+    const response = await browser.runtime.sendMessage({
+      action: 'saveTokens',
+      tokens: tokens
+    });
     
-    return true;
+    return response && response.status === 'success';
   } catch (error) {
     console.error('Error saving token:', error);
     return false;
@@ -32,36 +81,61 @@ export const saveToken = async (token) => {
  */
 export const getTokens = async () => {
   try {
-    // Check if we're using browser.storage (Firefox) or chrome.storage (Chrome)
-    const storage = browser?.storage?.sync || chrome?.storage?.sync;
-    
-    if (!storage) {
-      console.error('Browser storage API not available');
-      return [];
-    }
-    
-    // Handle both Promise-based (Firefox) and callback-based (Chrome) storage APIs
-    if (typeof browser !== 'undefined') {
-      // Firefox Promise-based implementation
-      try {
-        const result = await storage.get('tokens');
-        return result.tokens || [];
-      } catch (error) {
-        console.error('Error retrieving tokens from browser storage:', error);
+    // Since tokens are now encrypted in the background script,
+    // we need to get them through the background script
+    if (typeof browser !== 'undefined' && browser.runtime) {
+      const response = await browser.runtime.sendMessage({
+        action: 'getTokens'
+      });
+      
+      if (response && response.status === 'success') {
+        return response.tokens || [];
+      } else {
+        console.error('Error retrieving tokens:', response?.message || 'Unknown error');
         return [];
       }
     } else {
-      // Chrome callback-based implementation
-      return new Promise((resolve) => {
-        storage.get('tokens', (result) => {
-          if (chrome.runtime.lastError) {
-            console.error('Error retrieving tokens:', chrome.runtime.lastError);
-            resolve([]);
-          } else {
-            resolve(result.tokens || []);
+      // Fallback to direct storage access when not in browser extension context
+      const storage = getStorage();
+      
+      if (!storage) {
+        console.error('Browser storage API not available');
+        return [];
+      }
+      
+      // Handle both Promise-based (Firefox) and callback-based (Chrome) storage APIs
+      if (typeof browser !== 'undefined') {
+        // Firefox Promise-based implementation
+        try {
+          const result = await storage.get('encryptedTokens');
+          if (result.encryptedTokens) {
+            console.warn('Encrypted tokens found but cannot decrypt in this context');
+            return [];
           }
+          
+          // Try fallback to unencrypted tokens (for backward compatibility)
+          const unencryptedResult = await storage.get('tokens');
+          return unencryptedResult.tokens || [];
+        } catch (error) {
+          console.error('Error retrieving tokens from browser storage:', error);
+          return [];
+        }
+      } else {
+        // Chrome callback-based implementation
+        return new Promise((resolve) => {
+          storage.get(['encryptedTokens', 'tokens'], (result) => {
+            if (chrome.runtime.lastError) {
+              console.error('Error retrieving tokens:', chrome.runtime.lastError);
+              resolve([]);
+            } else if (result.encryptedTokens) {
+              console.warn('Encrypted tokens found but cannot decrypt in this context');
+              resolve([]);
+            } else {
+              resolve(result.tokens || []);
+            }
+          });
         });
-      });
+      }
     }
   } catch (error) {
     console.error('Error retrieving tokens:', error);
@@ -82,10 +156,20 @@ export const deleteToken = async (tokenId) => {
     // Filter out the token to delete
     const updatedTokens = tokens.filter(token => token.id !== tokenId);
     
-    // Save back to storage
-    await browser.storage.sync.set({ tokens: updatedTokens });
+    // Since tokens are now encrypted in the background script,
+    // we send a message to background script to save tokens
+    const response = await browser.runtime.sendMessage({
+      action: 'saveTokens',
+      tokens: updatedTokens
+    });
     
-    return true;
+    // If successful, dispatch a refresh event
+    if (response && response.status === 'success') {
+      window.dispatchEvent(new CustomEvent('refreshTokens'));
+      return true;
+    }
+    
+    return false;
   } catch (error) {
     console.error('Error deleting token:', error);
     return false;
@@ -111,10 +195,20 @@ export const updateToken = async (tokenId, updatedData) => {
       return token;
     });
     
-    // Save back to storage
-    await browser.storage.sync.set({ tokens: updatedTokens });
+    // Since tokens are now encrypted in the background script,
+    // we send a message to background script to save tokens
+    const response = await browser.runtime.sendMessage({
+      action: 'saveTokens',
+      tokens: updatedTokens
+    });
     
-    return true;
+    // If successful, dispatch a refresh event
+    if (response && response.status === 'success') {
+      window.dispatchEvent(new CustomEvent('refreshTokens'));
+      return true;
+    }
+    
+    return false;
   } catch (error) {
     console.error('Error updating token:', error);
     return false;
