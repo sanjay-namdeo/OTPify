@@ -3,31 +3,29 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>OTPify Extension Demo</title>
+  <title>OTPify Demo</title>
   <style>
     :root {
       --primary-color: #4CAF50;
       --secondary-color: #2E7D32;
       --dark-color: #1B5E20;
       --light-color: #A5D6A7;
-      --background-color: #FFFFFF;
       --text-color: #212121;
-      --card-background: #F5F5F5;
-      --border-color: #E0E0E0;
-      --success-color: #4CAF50;
-      --warning-color: #FFC107;
-      --danger-color: #F44336;
+      --card-background: #f5f5f5;
+      --border-color: #e0e0e0;
+      --background-color: #fff;
       --shadow-color: rgba(0, 0, 0, 0.1);
-      --input-background: #F5F5F5;
-      --button-text-color: white;
     }
     
-    .dark-theme {
-      --background-color: #212121;
-      --text-color: #F5F5F5;
+    [data-theme="dark"] {
+      --primary-color: #4CAF50;
+      --secondary-color: #81C784;
+      --dark-color: #1B5E20;
+      --light-color: #A5D6A7;
+      --text-color: #f5f5f5;
       --card-background: #333333;
       --border-color: #424242;
-      --input-background: #424242;
+      --background-color: #212121;
       --shadow-color: rgba(0, 0, 0, 0.3);
     }
     
@@ -41,8 +39,12 @@
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
       background-color: var(--background-color);
       color: var(--text-color);
-      padding: 20px;
       transition: all 0.3s ease;
+      padding: 20px;
+    }
+    
+    h1, h2, h3 {
+      color: var(--primary-color);
     }
     
     .container {
@@ -51,56 +53,99 @@
       padding: 20px;
     }
     
-    .demo-header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    
-    h1, h2, h3, h4, h5, h6 {
-      color: var(--text-color);
-      margin-bottom: 12px;
-    }
-    
-    .demo-popup {
-      width: 350px;
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      overflow: hidden;
-      box-shadow: 0 4px 12px var(--shadow-color);
-      margin: 0 auto;
-    }
-    
-    .theme-toggle {
-      display: flex;
-      justify-content: center;
-      margin-bottom: 20px;
-    }
-    
-    button {
-      background-color: var(--primary-color);
-      color: var(--button-text-color);
-      border: none;
-      border-radius: 4px;
-      padding: 8px 16px;
-      cursor: pointer;
-      font-weight: 500;
-      transition: background-color 0.2s ease;
-    }
-    
-    button:hover {
-      background-color: var(--secondary-color);
-    }
-    
-    /* Importing popup styles */
-    .app-container {
-      width: 100%;
-    }
-    
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      padding: 16px;
+      margin-bottom: 30px;
+    }
+    
+    .theme-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+    }
+    
+    .theme-toggle span {
+      margin-right: 10px;
+    }
+    
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 60px;
+      height: 30px;
+    }
+    
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+    
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #ccc;
+      transition: .4s;
+      border-radius: 34px;
+    }
+    
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 22px;
+      width: 22px;
+      left: 4px;
+      bottom: 4px;
+      background-color: white;
+      transition: .4s;
+      border-radius: 50%;
+    }
+    
+    input:checked + .slider {
+      background-color: var(--primary-color);
+    }
+    
+    input:checked + .slider:before {
+      transform: translateX(30px);
+    }
+    
+    .demo-section {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 30px;
+      margin-bottom: 40px;
+    }
+    
+    .demo-container {
+      flex: 1;
+      min-width: 300px;
+    }
+    
+    .demo-description {
+      flex: 2;
+      min-width: 300px;
+    }
+    
+    .extension-container {
+      background-color: var(--card-background);
+      border-radius: 8px;
+      box-shadow: 0 4px 8px var(--shadow-color);
+      width: 350px;
+      overflow: hidden;
+      margin: 0 auto;
+    }
+    
+    .extension-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 12px 16px;
       background-color: var(--card-background);
       border-bottom: 1px solid var(--border-color);
     }
@@ -114,269 +159,607 @@
       margin-right: 8px;
     }
     
-    .app-title h1 {
+    .app-title h3 {
       font-size: 18px;
       margin: 0;
+      color: var(--text-color);
     }
     
-    .token-list {
+    .extension-content {
       padding: 16px;
-      max-height: 500px;
-      overflow-y: auto;
     }
     
     .token-card {
       background-color: var(--card-background);
       border-radius: 8px;
-      padding: 16px;
-      margin-bottom: 16px;
+      padding: 12px;
+      margin-bottom: 12px;
       box-shadow: 0 2px 4px var(--shadow-color);
+      border: 1px solid var(--border-color);
     }
     
     .token-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 12px;
+      margin-bottom: 8px;
+    }
+    
+    .token-header h4 {
+      color: var(--text-color);
+      font-size: 14px;
+      margin: 0;
     }
     
     .token-type {
       background-color: rgba(76, 175, 80, 0.1);
       color: var(--primary-color);
-      padding: 4px 8px;
+      padding: 3px 6px;
       border-radius: 4px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 500;
     }
     
     .token-detail {
-      margin-bottom: 12px;
+      margin-bottom: 8px;
     }
     
     .token-detail label {
-      font-size: 12px;
+      font-size: 11px;
       opacity: 0.7;
-      margin-bottom: 4px;
+      margin-bottom: 2px;
       display: block;
+    }
+    
+    .token-codes {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 8px;
+    }
+    
+    .current-token {
+      flex: 3;
+    }
+    
+    .next-token {
+      flex: 2;
+      margin-left: 10px;
     }
     
     .token-code {
       font-family: 'Courier New', monospace;
-      font-size: 20px;
+      font-size: 18px;
       letter-spacing: 1px;
+      font-weight: bold;
+    }
+    
+    .token-code-next {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      letter-spacing: 1px;
+      opacity: 0.8;
     }
     
     .progress-container {
       width: 100%;
-      height: 6px;
+      height: 4px;
       background-color: var(--border-color);
-      border-radius: 3px;
-      margin-top: 16px;
+      border-radius: 2px;
+      margin-top: 8px;
       overflow: hidden;
     }
     
     .progress-bar {
       height: 100%;
-      border-radius: 3px;
+      border-radius: 2px;
       transition: width 1s linear, background-color 0.3s ease;
     }
     
-    .footer {
-      margin-top: 40px;
-      text-align: center;
-      opacity: 0.7;
+    button {
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 6px 12px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+      font-size: 13px;
+    }
+    
+    button:hover {
+      background-color: var(--dark-color);
+    }
+    
+    .feature-list {
+      margin: 20px 0;
+    }
+    
+    .feature-item {
+      margin-bottom: 15px;
+      padding-left: 24px;
+      position: relative;
+    }
+    
+    .feature-item:before {
+      content: '✓';
+      position: absolute;
+      left: 0;
+      color: var(--primary-color);
+      font-weight: bold;
+    }
+    
+    .master-password-form {
+      padding: 16px;
+    }
+    
+    .master-password-form h3 {
+      margin-bottom: 12px;
+      color: var(--text-color);
+      font-size: 18px;
+    }
+    
+    .master-password-form p {
+      margin-bottom: 16px;
+      font-size: 13px;
+      opacity: 0.8;
+    }
+    
+    .form-group {
+      margin-bottom: 12px;
+    }
+    
+    .form-group label {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      color: var(--text-color);
+    }
+    
+    .form-group input {
+      width: 100%;
+      padding: 8px 10px;
+      border: 1px solid var(--border-color);
+      border-radius: 4px;
+      background-color: var(--background-color);
+      color: var(--text-color);
+      font-size: 13px;
+    }
+    
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      margin-top: 20px;
+    }
+    
+    .code-example {
+      background-color: var(--card-background);
+      padding: 15px;
+      border-radius: 8px;
+      border-left: 4px solid var(--primary-color);
+      font-family: monospace;
+      margin: 20px 0;
+      overflow-x: auto;
+      font-size: 14px;
     }
     
     .section {
-      margin-bottom: 60px;
+      margin-bottom: 40px;
     }
     
-    .instructions {
-      margin-top: 40px;
-      padding: 20px;
-      background-color: var(--card-background);
-      border-radius: 8px;
-      box-shadow: 0 2px 4px var(--shadow-color);
+    .demo-toggle {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
     }
     
-    .instructions ul {
-      margin-left: 20px;
-      margin-top: 10px;
+    .demo-toggle button {
+      flex: 1;
     }
     
-    .instructions li {
-      margin-bottom: 8px;
+    .demo-toggle button.active {
+      background-color: var(--dark-color);
     }
     
-    pre {
-      background-color: rgba(0, 0, 0, 0.05);
-      padding: 12px;
-      border-radius: 4px;
-      overflow-x: auto;
-      margin: 10px 0;
+    .demo-stage {
+      display: none;
     }
     
-    .empty-state {
-      text-align: center;
-      padding: 32px 16px;
-      color: var(--text-color);
-      opacity: 0.7;
+    .demo-stage.active {
+      display: block;
+    }
+    
+    .lock-button {
+      background-color: transparent;
+      color: var(--primary-color);
+      font-size: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      .demo-section {
+        flex-direction: column;
+      }
+      
+      .extension-container {
+        width: 100%;
+      }
     }
   </style>
-  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/otpauth@8.0.3/dist/otpauth.umd.min.js"></script>
-  <script src="js/demo-tokens.js"></script>
 </head>
 <body>
   <div class="container">
-    <div class="demo-header">
-      <h1>OTPify Firefox Extension Demo</h1>
-      <p>Here's what the extension popup looks like in Firefox</p>
+    <div class="header">
+      <h1>OTPify Demo</h1>
+      
+      <div class="theme-toggle">
+        <span>Dark Mode</span>
+        <label class="switch">
+          <input type="checkbox" id="theme-toggle">
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
     
-    <div class="theme-toggle">
-      <button id="toggleTheme">Toggle Dark/Light Theme</button>
-    </div>
-    
-    <div class="demo-popup" id="demo-popup">
-      <div class="header">
-        <div class="app-title">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <rect width="24" height="24" rx="12" fill="#4CAF50" />
-            <circle cx="8" cy="12" r="2" fill="#000" />
-            <circle cx="12" cy="12" r="2" fill="#000" />
-            <circle cx="16" cy="12" r="2" fill="#000" />
-          </svg>
-          <h1>OTPify</h1>
+    <div class="section">
+      <h2>Interactive Demo</h2>
+      <p>This demo showcases the key features of the OTPify Firefox extension. Toggle between different views to see how it works.</p>
+      
+      <div class="demo-toggle">
+        <button class="toggle-btn active" data-demo="tokens">Token Display</button>
+        <button class="toggle-btn" data-demo="master-password">Master Password</button>
+        <button class="toggle-btn" data-demo="add-token">Add Token</button>
+      </div>
+      
+      <div class="demo-section">
+        <div class="demo-container">
+          <!-- Extension UI Demo -->
+          <div class="extension-container">
+            <div class="extension-header">
+              <div class="app-title">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                  <rect width="24" height="24" rx="12" fill="#4CAF50" />
+                  <circle cx="8" cy="12" r="2" fill="#000" />
+                  <circle cx="12" cy="12" r="2" fill="#000" />
+                  <circle cx="16" cy="12" r="2" fill="#000" />
+                </svg>
+                <h3>OTPify</h3>
+              </div>
+              <button class="lock-button" id="lock-button">🔒</button>
+            </div>
+            
+            <div class="extension-content">
+              <!-- Master Password Demo -->
+              <div class="demo-stage" id="master-password-demo">
+                <div class="master-password-form">
+                  <h3>Enter Master Password</h3>
+                  <p>Enter your master password to unlock your tokens.</p>
+                  
+                  <div class="form-group">
+                    <label>Master Password</label>
+                    <input type="password" placeholder="Enter your master password">
+                  </div>
+                  
+                  <div class="form-actions">
+                    <button>Unlock</button>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Tokens Display Demo -->
+              <div class="demo-stage active" id="tokens-demo">
+                <!-- Token cards will be added here by JavaScript -->
+              </div>
+              
+              <!-- Add Token Demo -->
+              <div class="demo-stage" id="add-token-demo">
+                <div class="master-password-form">
+                  <h3>Add New Token</h3>
+                  
+                  <div class="form-group">
+                    <label>Token Type</label>
+                    <select>
+                      <option>TOTP (Google Auth, Microsoft Auth, etc.)</option>
+                      <option>RSA SecurID</option>
+                    </select>
+                  </div>
+                  
+                  <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" placeholder="e.g. GitHub, Gmail">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label>Account</label>
+                    <input type="text" placeholder="e.g. username or email">
+                  </div>
+                  
+                  <div class="form-group">
+                    <label>Secret Key</label>
+                    <input type="text" placeholder="JBSWY3DPEHPK3PXP">
+                  </div>
+                  
+                  <div class="form-actions">
+                    <button>Add Token</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <button>Add Token</button>
-      </div>
-      
-      <div class="token-list" id="token-list">
-        <!-- Token cards will be inserted here by JavaScript -->
+        
+        <div class="demo-description">
+          <h3>Key Features</h3>
+          <div class="feature-list">
+            <div class="feature-item">
+              <strong>Side-by-Side Token Display:</strong> Current token prominently shown on the left with the next token on the right in a smaller font.
+            </div>
+            <div class="feature-item">
+              <strong>Master Password Protection:</strong> All token data is encrypted with a master password using AES-256-GCM.
+            </div>
+            <div class="feature-item">
+              <strong>End-to-End Encryption:</strong> All sensitive token data is securely encrypted on your device.
+            </div>
+            <div class="feature-item">
+              <strong>Auto-Lock:</strong> For security, the extension automatically locks after 5 minutes of inactivity.
+            </div>
+            <div class="feature-item">
+              <strong>RSA SecurID Support:</strong> Uses the official RSA SecurID token generation algorithm.
+            </div>
+            <div class="feature-item">
+              <strong>Visual Progress Indicator:</strong> Color-changing progress bar indicates time until token refresh.
+            </div>
+            <div class="feature-item">
+              <strong>Light/Dark Theme:</strong> Automatically adapts to your browser's theme settings.
+            </div>
+          </div>
+          
+          <div id="feature-details" class="section">
+            <h3>About This Demo</h3>
+            <p>This interactive demo shows how the OTPify extension works. The tokens shown here are generated in real-time using the same algorithms used in the actual extension.</p>
+            <p>To experience the full functionality, try the Firefox extension!</p>
+          </div>
+        </div>
       </div>
     </div>
     
-    <div class="section instructions">
-      <h2>About This Demo</h2>
-      <p>This is a static demo showing what the OTPify Firefox extension looks like when installed. The actual extension allows you to:</p>
-      <ul>
-        <li>Add and manage TOTP and RSA tokens</li>
-        <li>See current and next tokens</li>
-        <li>Track token expiration with a color-changing progress bar</li>
-        <li>Use a dark or light theme that matches your browser</li>
-      </ul>
+    <div class="section">
+      <h2>Security Implementation</h2>
+      <p>OTPify uses strong encryption to protect your tokens:</p>
       
-      <h3>Installation Instructions</h3>
-      <p>To install the actual extension in Firefox:</p>
-      <ol>
-        <li>Download the extension files</li>
-        <li>Open Firefox and navigate to <code>about:debugging</code></li>
-        <li>Click "This Firefox" in the sidebar</li>
-        <li>Click "Load Temporary Add-on..."</li>
-        <li>Select any file in the extension directory</li>
-      </ol>
-    </div>
-    
-    <div class="footer">
-      <p>&copy; 2025 OTPify - A Firefox extension for secure token management</p>
+      <div class="code-example">
+        // Key derivation using PBKDF2 with 100,000 iterations
+        const key = await crypto.subtle.deriveKey(
+          {
+            name: 'PBKDF2',
+            salt: saltData,
+            iterations: 100000,
+            hash: 'SHA-256'
+          },
+          baseKey,
+          { name: 'AES-GCM', length: 256 },
+          false,
+          ['encrypt', 'decrypt']
+        );
+        
+        // Encryption using AES-GCM
+        const encryptedData = await crypto.subtle.encrypt(
+          {
+            name: 'AES-GCM',
+            iv: iv // Initialization Vector
+          },
+          key,
+          dataToEncrypt
+        );
+      </div>
+      
+      <p>All token data is encrypted locally on your device before being stored. Even if someone gains access to your browser's storage, they would need your master password to decrypt the data.</p>
     </div>
   </div>
   
   <script>
-    // Demo tokens are loaded from demo-tokens.js
+    // Sample token data for demo
+    const demoTokens = [
+      {
+        id: '1',
+        name: 'Work Email',
+        account: 'user@company.com',
+        type: 'TOTP',
+        period: 30
+      },
+      {
+        id: '2',
+        name: 'GitHub',
+        account: 'developer123',
+        type: 'TOTP',
+        period: 30
+      },
+      {
+        id: '3',
+        name: 'VPN Access',
+        account: 'john.doe',
+        type: 'RSA',
+        period: 60
+      }
+    ];
     
-    function createTokenCard(token) {
-      const card = document.createElement('div');
-      card.className = 'token-card';
-      
-      // Current time
-      const now = Math.floor(Date.now() / 1000);
-      const remainingSeconds = 30 - (now % 30);
-      const percent = (remainingSeconds / 30) * 100;
-      
-      // Progress bar color
-      let progressColor = '#4CAF50'; // Green default
-      if (remainingSeconds <= 10) {
-        progressColor = '#F44336'; // Red
-      } else if (remainingSeconds <= 20) {
-        progressColor = '#FFC107'; // Yellow
+    // Simple RSA Simulator for the demo
+    class RSASimulator {
+      constructor(seed) {
+        this.seed = seed || 'demo-seed-' + Math.random().toString(36).substring(2, 10);
       }
       
-      // Demo tokens - simulated codes
-      const digits = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
-      let currentToken = '';
-      let nextToken = '';
-      
-      // Generate demo tokens
-      for (let i = 0; i < 6; i++) {
-        currentToken += digits[Math.floor(Math.random() * digits.length)];
-        nextToken += digits[Math.floor(Math.random() * digits.length)];
+      getTokenCode() {
+        const now = Math.floor(Date.now() / 1000);
+        const period = Math.floor(now / 60);
+        return this._generateCode(period);
       }
       
-      // Format tokens with a space in the middle
-      currentToken = `${currentToken.substring(0, 3)} ${currentToken.substring(3)}`;
-      nextToken = `${nextToken.substring(0, 3)} ${nextToken.substring(3)}`;
+      getNextTokenCode() {
+        const now = Math.floor(Date.now() / 1000);
+        const period = Math.floor(now / 60) + 1;
+        return this._generateCode(period);
+      }
       
-      card.innerHTML = `
-        <div class="token-header">
-          <h3>${token.name}</h3>
-          <span class="token-type">${token.type}</span>
-        </div>
+      _generateCode(period) {
+        // Simple hash function for demo purposes
+        let hash = 0;
+        const input = `${this.seed}-${period}`;
         
-        <div class="token-detail">
-          <label>Account</label>
-          <p>${token.account}</p>
-        </div>
+        for (let i = 0; i < input.length; i++) {
+          hash = ((hash << 5) - hash) + input.charCodeAt(i);
+          hash |= 0;
+        }
         
-        <div class="token-detail">
-          <label>Current Token</label>
-          <p class="token-code">${currentToken}</p>
-        </div>
-        
-        <div class="token-detail">
-          <label>Next Token</label>
-          <p class="token-code">${nextToken}</p>
-        </div>
-        
-        <div class="progress-container">
-          <div class="progress-bar" style="width: ${percent}%; background-color: ${progressColor};"></div>
-        </div>
-      `;
-      
-      return card;
+        return Math.abs(hash % 1000000).toString().padStart(6, '0');
+      }
     }
     
-    function updateTokens() {
-      const tokenList = document.getElementById('token-list');
-      tokenList.innerHTML = '';
+    // Simple TOTP Simulator for the demo
+    class TOTPSimulator {
+      constructor(secret) {
+        this.secret = secret || 'DEMO' + Math.random().toString(36).substring(2, 10).toUpperCase();
+      }
       
-      if (demoTokens.length === 0) {
-        const emptyState = document.createElement('div');
-        emptyState.className = 'empty-state';
-        emptyState.innerHTML = `
-          <p>No tokens added yet.</p>
-          <p>Click "Add Token" to get started.</p>
+      getTokenCode() {
+        const now = Math.floor(Date.now() / 1000);
+        const period = Math.floor(now / 30);
+        return this._generateCode(period);
+      }
+      
+      getNextTokenCode() {
+        const now = Math.floor(Date.now() / 1000);
+        const period = Math.floor(now / 30) + 1;
+        return this._generateCode(period);
+      }
+      
+      _generateCode(period) {
+        // Simple hash function for demo purposes
+        let hash = 0;
+        const input = `${this.secret}-${period}`;
+        
+        for (let i = 0; i < input.length; i++) {
+          hash = ((hash << 5) - hash) + input.charCodeAt(i);
+          hash |= 0;
+        }
+        
+        return Math.abs(hash % 1000000).toString().padStart(6, '0');
+      }
+    }
+    
+    // Create and update token cards
+    function createTokenCards() {
+      const tokensContainer = document.getElementById('tokens-demo');
+      tokensContainer.innerHTML = '';
+      
+      demoTokens.forEach(token => {
+        const generator = token.type === 'TOTP' ? new TOTPSimulator(token.name) : new RSASimulator(token.name);
+        
+        // Format codes with spaces
+        let currentCode = generator.getTokenCode();
+        let nextCode = generator.getNextTokenCode();
+        
+        if (currentCode.length === 6) {
+          currentCode = `${currentCode.substring(0, 3)} ${currentCode.substring(3)}`;
+        }
+        
+        if (nextCode.length === 6) {
+          nextCode = `${nextCode.substring(0, 3)} ${nextCode.substring(3)}`;
+        }
+        
+        // Calculate remaining time
+        const now = Math.floor(Date.now() / 1000);
+        const period = token.type === 'TOTP' ? 30 : 60;
+        const timeRemaining = period - (now % period);
+        const progressPercent = (timeRemaining / period) * 100;
+        
+        // Determine color
+        let progressColor = '#4CAF50';
+        if (timeRemaining <= period / 3) {
+          progressColor = '#F44336';
+        } else if (timeRemaining <= period * 2/3) {
+          progressColor = '#FFC107';
+        }
+        
+        // Create token card
+        const cardHtml = `
+          <div class="token-card">
+            <div class="token-header">
+              <h4>${token.name}</h4>
+              <span class="token-type">${token.type}</span>
+            </div>
+            <div class="token-detail">
+              <label>Account</label>
+              <p>${token.account}</p>
+            </div>
+            <div class="token-codes">
+              <div class="current-token">
+                <label>Current</label>
+                <p class="token-code">${currentCode}</p>
+              </div>
+              <div class="next-token">
+                <label>Next</label>
+                <p class="token-code-next">${nextCode}</p>
+              </div>
+            </div>
+            <div class="progress-container">
+              <div class="progress-bar" style="width: ${progressPercent}%; background-color: ${progressColor}"></div>
+            </div>
+          </div>
         `;
-        tokenList.appendChild(emptyState);
-      } else {
-        demoTokens.forEach(token => {
-          tokenList.appendChild(createTokenCard(token));
-        });
-      }
+        
+        tokensContainer.innerHTML += cardHtml;
+      });
     }
     
-    // Toggle dark/light theme
-    document.getElementById('toggleTheme').addEventListener('click', () => {
-      document.body.classList.toggle('dark-theme');
+    // Update tokens every second
+    createTokenCards();
+    setInterval(createTokenCards, 1000);
+    
+    // Theme toggle
+    const themeToggle = document.getElementById('theme-toggle');
+    
+    themeToggle.addEventListener('change', function() {
+      if (this.checked) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+      }
     });
     
-    // Initialize the demo
-    updateTokens();
+    // Demo view toggle
+    const toggleButtons = document.querySelectorAll('.toggle-btn');
+    const demoStages = document.querySelectorAll('.demo-stage');
     
-    // Update the tokens and progress bars every second
-    setInterval(updateTokens, 1000);
+    toggleButtons.forEach(btn => {
+      btn.addEventListener('click', function() {
+        const demoType = this.getAttribute('data-demo');
+        
+        // Activate button
+        toggleButtons.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        
+        // Show corresponding demo stage
+        demoStages.forEach(stage => {
+          stage.classList.remove('active');
+          if (stage.id === demoType + '-demo') {
+            stage.classList.add('active');
+          }
+        });
+      });
+    });
+    
+    // Lock button functionality
+    const lockButton = document.getElementById('lock-button');
+    
+    lockButton.addEventListener('click', function() {
+      // Show master password view when locked
+      toggleButtons.forEach(btn => {
+        if (btn.getAttribute('data-demo') === 'master-password') {
+          btn.click();
+        }
+      });
+    });
   </script>
 </body>
 </html>

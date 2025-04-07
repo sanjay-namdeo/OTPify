@@ -4,6 +4,68 @@
  * to work without using ES modules which can cause issues in Firefox extensions.
  */
 
+// ========== MasterPasswordForm Component ==========
+function MasterPasswordForm({ onVerify, isSetup }) {
+  const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [error, setError] = React.useState('');
+  
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    
+    if (isSetup) {
+      // Setting up a new master password
+      if (password.length < 8) {
+        setError('Password must be at least 8 characters long');
+        return;
+      }
+      
+      if (password !== confirmPassword) {
+        setError('Passwords do not match');
+        return;
+      }
+    }
+    
+    onVerify(password);
+  };
+  
+  return React.createElement('div', { className: 'master-password-form' },
+    React.createElement('h2', null, isSetup ? 'Set Master Password' : 'Enter Master Password'),
+    React.createElement('p', null, isSetup 
+      ? 'Create a strong master password to encrypt and protect your tokens.' 
+      : 'Enter your master password to unlock your tokens.'),
+    
+    error && React.createElement('div', { className: 'error-message' }, error),
+    
+    React.createElement('form', { onSubmit: handleSubmit },
+      React.createElement('div', { className: 'form-group' },
+        React.createElement('label', null, 'Master Password'),
+        React.createElement('input', {
+          type: 'password',
+          value: password,
+          onChange: (e) => setPassword(e.target.value),
+          placeholder: 'Enter your master password'
+        })
+      ),
+      
+      isSetup && React.createElement('div', { className: 'form-group' },
+        React.createElement('label', null, 'Confirm Password'),
+        React.createElement('input', {
+          type: 'password',
+          value: confirmPassword,
+          onChange: (e) => setConfirmPassword(e.target.value),
+          placeholder: 'Confirm your master password'
+        })
+      ),
+      
+      React.createElement('button', {
+        type: 'submit',
+        className: 'submit-button'
+      }, isSetup ? 'Create Password' : 'Unlock')
+    )
+  );
+}
+
 // ========== TokenCard Component ==========
 function TokenCard({ token, onDelete }) {
   const [currentCode, setCurrentCode] = React.useState('');
@@ -62,36 +124,70 @@ function TokenCard({ token, onDelete }) {
         } 
         // For RSA tokens
         else if (token.type === 'RSA') {
-          const generator = new RSASecurID.TokenGenerator(token.secret);
-          
-          // Get current and next codes
-          let current = generator.getTokenCode();
-          let next = generator.getNextTokenCode();
-          
-          // Format with a space in the middle
-          if (current.length === 6) {
-            current = `${current.substring(0, 3)} ${current.substring(3)}`;
-          }
-          
-          if (next.length === 6) {
-            next = `${next.substring(0, 3)} ${next.substring(3)}`;
-          }
-          
-          setCurrentCode(current);
-          setNextCode(next);
-          
-          // RSA tokens typically refresh every 60 seconds
-          const now = Math.floor(Date.now() / 1000);
-          const seconds = now % 60;
-          setTimeRemaining(60 - seconds);
-          
-          // Update progress bar color
-          if (60 - seconds <= 15) {
-            setProgressColor('#F44336'); // Red when 15 seconds or less remaining
-          } else if (60 - seconds <= 30) {
-            setProgressColor('#FFC107'); // Yellow when 30 seconds or less remaining
-          } else {
-            setProgressColor('#4CAF50'); // Green otherwise
+          try {
+            // Use RSA-SecurID library if available, otherwise fallback to simulator
+            const generator = new RSASecurID.TokenGenerator(token.secret);
+            
+            // Get current and next codes
+            let current = generator.getTokenCode();
+            let next = generator.getNextTokenCode();
+            
+            // Format with a space in the middle
+            if (current.length === 6) {
+              current = `${current.substring(0, 3)} ${current.substring(3)}`;
+            }
+            
+            if (next.length === 6) {
+              next = `${next.substring(0, 3)} ${next.substring(3)}`;
+            }
+            
+            setCurrentCode(current);
+            setNextCode(next);
+            
+            // RSA tokens typically refresh every 60 seconds
+            const now = Math.floor(Date.now() / 1000);
+            const seconds = now % 60;
+            setTimeRemaining(60 - seconds);
+            
+            // Update progress bar color
+            if (60 - seconds <= 15) {
+              setProgressColor('#F44336'); // Red when 15 seconds or less remaining
+            } else if (60 - seconds <= 30) {
+              setProgressColor('#FFC107'); // Yellow when 30 seconds or less remaining
+            } else {
+              setProgressColor('#4CAF50'); // Green otherwise
+            }
+          } catch (error) {
+            console.error('Error generating RSA token, falling back to simulator:', error);
+            // Fallback to our simulator if library fails
+            const fallbackGenerator = new RSASimulator(token.secret);
+            
+            // Get codes and format them
+            let current = fallbackGenerator.getTokenCode();
+            let next = fallbackGenerator.getNextTokenCode();
+            
+            if (current.length === 6) {
+              current = `${current.substring(0, 3)} ${current.substring(3)}`;
+            }
+            
+            if (next.length === 6) {
+              next = `${next.substring(0, 3)} ${next.substring(3)}`;
+            }
+            
+            setCurrentCode(current);
+            setNextCode(next);
+            
+            const now = Math.floor(Date.now() / 1000);
+            const seconds = now % 60;
+            setTimeRemaining(60 - seconds);
+            
+            if (60 - seconds <= 15) {
+              setProgressColor('#F44336');
+            } else if (60 - seconds <= 30) {
+              setProgressColor('#FFC107');
+            } else {
+              setProgressColor('#4CAF50');
+            }
           }
         }
       } catch (error) {
@@ -129,13 +225,15 @@ function TokenCard({ token, onDelete }) {
       React.createElement('label', null, 'Account'),
       React.createElement('p', null, token.account)
     ),
-    React.createElement('div', { className: 'token-detail' },
-      React.createElement('label', null, 'Current Token'),
-      React.createElement('p', { className: 'token-code' }, currentCode || '------')
-    ),
-    React.createElement('div', { className: 'token-detail' },
-      React.createElement('label', null, 'Next Token'),
-      React.createElement('p', { className: 'token-code' }, nextCode || '------')
+    React.createElement('div', { className: 'token-codes' },
+      React.createElement('div', { className: 'current-token' },
+        React.createElement('label', null, 'Current'),
+        React.createElement('p', { className: 'token-code' }, currentCode || '------')
+      ),
+      React.createElement('div', { className: 'next-token' },
+        React.createElement('label', null, 'Next'),
+        React.createElement('p', { className: 'token-code-next' }, nextCode || '------')
+      )
     ),
     React.createElement('div', { className: 'progress-container' },
       React.createElement('div', { 
@@ -281,29 +379,214 @@ function AddTokenForm({ onAdd, onCancel }) {
   );
 }
 
+// ========== Crypto Utilities ==========
+
+// Key derivation function to get encryption key from master password
+const deriveKey = async (password, salt) => {
+  const encoder = new TextEncoder();
+  const passwordData = encoder.encode(password);
+  const saltData = encoder.encode(salt);
+  
+  // Import the password as a key
+  const baseKey = await window.crypto.subtle.importKey(
+    'raw',
+    passwordData,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveKey']
+  );
+  
+  // Derive a key for AES-GCM
+  return window.crypto.subtle.deriveKey(
+    {
+      name: 'PBKDF2',
+      salt: saltData,
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    baseKey,
+    { name: 'AES-GCM', length: 256 },
+    false,
+    ['encrypt', 'decrypt']
+  );
+};
+
+// Encrypt data with the derived key
+const encryptData = async (data, key) => {
+  const encoder = new TextEncoder();
+  const dataToEncrypt = encoder.encode(JSON.stringify(data));
+  
+  // Generate initialization vector
+  const iv = window.crypto.getRandomValues(new Uint8Array(12));
+  
+  // Encrypt the data
+  const encryptedData = await window.crypto.subtle.encrypt(
+    {
+      name: 'AES-GCM',
+      iv
+    },
+    key,
+    dataToEncrypt
+  );
+  
+  // Convert encrypted data to a base64 string
+  const encryptedArray = new Uint8Array(encryptedData);
+  const ivString = Array.from(iv).map(b => String.fromCharCode(b)).join('');
+  const encryptedString = Array.from(encryptedArray).map(b => String.fromCharCode(b)).join('');
+  
+  return {
+    iv: btoa(ivString),
+    encryptedData: btoa(encryptedString)
+  };
+};
+
+// Decrypt data with the derived key
+const decryptData = async (encryptedObj, key) => {
+  try {
+    // Convert base64 strings back to arrays
+    const iv = Uint8Array.from(atob(encryptedObj.iv).split('').map(c => c.charCodeAt(0)));
+    const encryptedData = Uint8Array.from(atob(encryptedObj.encryptedData).split('').map(c => c.charCodeAt(0)));
+    
+    // Decrypt the data
+    const decryptedData = await window.crypto.subtle.decrypt(
+      {
+        name: 'AES-GCM',
+        iv
+      },
+      key,
+      encryptedData
+    );
+    
+    // Convert the decrypted data to a string and parse
+    const decoder = new TextDecoder();
+    return JSON.parse(decoder.decode(decryptedData));
+  } catch (error) {
+    console.error('Decryption error:', error);
+    throw new Error('Invalid master password or corrupted data');
+  }
+};
+
+// Verify the master password
+const verifyMasterPassword = async (password, salt, passwordHash) => {
+  try {
+    const encoder = new TextEncoder();
+    const passwordData = encoder.encode(password);
+    
+    // Import the password as a key
+    const baseKey = await window.crypto.subtle.importKey(
+      'raw',
+      passwordData,
+      { name: 'PBKDF2' },
+      false,
+      ['deriveBits']
+    );
+    
+    // Derive bits for verification
+    const derivedBits = await window.crypto.subtle.deriveBits(
+      {
+        name: 'PBKDF2',
+        salt: encoder.encode(salt),
+        iterations: 100000,
+        hash: 'SHA-256'
+      },
+      baseKey,
+      256
+    );
+    
+    // Convert to a string for comparison
+    const derivedHash = Array.from(new Uint8Array(derivedBits))
+      .map(b => b.toString(16).padStart(2, '0'))
+      .join('');
+    
+    return derivedHash === passwordHash;
+  } catch (error) {
+    console.error('Password verification error:', error);
+    return false;
+  }
+};
+
+// Create a password hash for verification
+const createPasswordHash = async (password, salt) => {
+  const encoder = new TextEncoder();
+  const passwordData = encoder.encode(password);
+  
+  // Import the password as a key
+  const baseKey = await window.crypto.subtle.importKey(
+    'raw',
+    passwordData,
+    { name: 'PBKDF2' },
+    false,
+    ['deriveBits']
+  );
+  
+  // Derive bits for verification
+  const derivedBits = await window.crypto.subtle.deriveBits(
+    {
+      name: 'PBKDF2',
+      salt: encoder.encode(salt),
+      iterations: 100000,
+      hash: 'SHA-256'
+    },
+    baseKey,
+    256
+  );
+  
+  // Convert to a string for storage
+  return Array.from(new Uint8Array(derivedBits))
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
+// Generate a random salt
+const generateSalt = () => {
+  const saltArray = window.crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(saltArray)
+    .map(b => b.toString(16).padStart(2, '0'))
+    .join('');
+};
+
 // ========== App Component ==========
 function App() {
   const [tokens, setTokens] = React.useState([]);
+  const [encryptedTokens, setEncryptedTokens] = React.useState(null);
   const [showAddForm, setShowAddForm] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState(null);
+  const [masterPassword, setMasterPassword] = React.useState(null);
+  const [isMasterPasswordSetup, setIsMasterPasswordSetup] = React.useState(false);
+  const [encryptionKey, setEncryptionKey] = React.useState(null);
+  const [salt, setSalt] = React.useState(null);
+  const [passwordHash, setPasswordHash] = React.useState(null);
   
   const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
   
-  // Load tokens when the app starts
+  // Load tokens and check if master password is set up
   React.useEffect(() => {
     async function loadTokens() {
       try {
         setLoading(true);
         
-        // Try to get tokens from sync storage first
+        // Get the storage API
         const storage = browserAPI?.storage?.sync || browserAPI?.storage?.local;
         if (!storage) {
           throw new Error('Browser storage API not available');
         }
         
-        const result = await storage.get('tokens');
-        setTokens(result.tokens || []);
+        // Load the encryption metadata first
+        const metaData = await storage.get(['salt', 'passwordHash', 'encryptedTokens']);
+        
+        if (!metaData.salt || !metaData.passwordHash) {
+          // No master password has been set up yet
+          setIsMasterPasswordSetup(false);
+          setLoading(false);
+          return;
+        }
+        
+        // Master password is set up
+        setSalt(metaData.salt);
+        setPasswordHash(metaData.passwordHash);
+        setEncryptedTokens(metaData.encryptedTokens || null);
+        setIsMasterPasswordSetup(true);
         setLoading(false);
       } catch (error) {
         console.error('Error loading tokens:', error);
@@ -337,16 +620,83 @@ function App() {
     };
   }, []);
   
-  // Save tokens to storage
+  // Handle master password verification or setup
+  const handleMasterPassword = async (password) => {
+    try {
+      setLoading(true);
+      
+      if (!isMasterPasswordSetup) {
+        // Setup new master password
+        const newSalt = generateSalt();
+        const newPasswordHash = await createPasswordHash(password, newSalt);
+        const key = await deriveKey(password, newSalt);
+        
+        // Save the salt and password hash
+        const storage = browserAPI?.storage?.sync || browserAPI?.storage?.local;
+        await storage.set({ 
+          salt: newSalt, 
+          passwordHash: newPasswordHash,
+          encryptedTokens: null
+        });
+        
+        setSalt(newSalt);
+        setPasswordHash(newPasswordHash);
+        setEncryptionKey(key);
+        setMasterPassword(password);
+        setIsMasterPasswordSetup(true);
+        setTokens([]);
+      } else {
+        // Verify existing master password
+        const isValid = await verifyMasterPassword(password, salt, passwordHash);
+        
+        if (!isValid) {
+          setError('Invalid master password');
+          setLoading(false);
+          return;
+        }
+        
+        // Derive the encryption key
+        const key = await deriveKey(password, salt);
+        setEncryptionKey(key);
+        setMasterPassword(password);
+        
+        // Decrypt tokens if available
+        if (encryptedTokens) {
+          const decryptedTokens = await decryptData(encryptedTokens, key);
+          setTokens(decryptedTokens);
+        } else {
+          setTokens([]);
+        }
+      }
+      
+      setError(null);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error with master password:', error);
+      setError(error.message);
+      setLoading(false);
+    }
+  };
+  
+  // Save tokens to storage (encrypted)
   const saveTokens = async (updatedTokens) => {
     try {
-      // Try to save to sync storage first
+      if (!encryptionKey) {
+        throw new Error('Encryption key not available');
+      }
+      
+      // Get the storage API
       const storage = browserAPI?.storage?.sync || browserAPI?.storage?.local;
       if (!storage) {
         throw new Error('Browser storage API not available');
       }
       
-      await storage.set({ tokens: updatedTokens });
+      // Encrypt the tokens
+      const encrypted = await encryptData(updatedTokens, encryptionKey);
+      
+      // Save the encrypted tokens
+      await storage.set({ encryptedTokens: encrypted });
+      setEncryptedTokens(encrypted);
     } catch (error) {
       console.error('Error saving tokens:', error);
       setError('Failed to save tokens. Please try again.');
@@ -392,12 +742,27 @@ function App() {
     pingBackgroundScript();
   }, []);
   
+  // Lock the app (clear master password and encryption key)
+  const handleLock = () => {
+    setMasterPassword(null);
+    setEncryptionKey(null);
+    setTokens([]);
+  };
+  
   if (loading) {
-    return React.createElement('div', { className: 'loading' }, 'Loading tokens...');
+    return React.createElement('div', { className: 'loading' }, 'Loading...');
   }
   
   if (error) {
     return React.createElement('div', { className: 'error' }, error);
+  }
+  
+  // Show master password form if not unlocked
+  if (!masterPassword) {
+    return React.createElement(MasterPasswordForm, {
+      onVerify: handleMasterPassword,
+      isSetup: !isMasterPasswordSetup
+    });
   }
   
   if (showAddForm) {
@@ -444,9 +809,16 @@ function App() {
         ),
         React.createElement('h1', null, 'OTPify')
       ),
-      React.createElement('button', {
-        onClick: () => setShowAddForm(true)
-      }, 'Add Token')
+      React.createElement('div', { className: 'header-actions' },
+        React.createElement('button', {
+          className: 'lock-button',
+          onClick: handleLock,
+          title: 'Lock'
+        }, '🔒'),
+        React.createElement('button', {
+          onClick: () => setShowAddForm(true)
+        }, 'Add Token')
+      )
     ),
     
     React.createElement('div', { className: 'token-list' },
@@ -464,6 +836,58 @@ function App() {
       )
     )
   );
+}
+
+// ========== RSA Simulator (Fallback) ==========
+class RSASimulator {
+  constructor(seed) {
+    this.seed = seed;
+    this.algorithm = 'sha256';
+  }
+  
+  /**
+   * Generates a token code based on the seed and current time
+   * @returns {string} 6-digit token
+   */
+  getTokenCode() {
+    return this._generateCode(0);
+  }
+  
+  /**
+   * Generates the next token code based on the seed and next time period
+   * @returns {string} 6-digit token
+   */
+  getNextTokenCode() {
+    return this._generateCode(1);
+  }
+  
+  /**
+   * Internal method to generate a deterministic but "random-looking" code
+   * based on seed and time offset
+   * @param {number} offset - Time offset (0 for current period, 1 for next period)
+   * @returns {string} 6-digit token
+   */
+  _generateCode(offset = 0) {
+    // Get current 60-second period (RSA typically uses 60-second windows)
+    const now = Math.floor(Date.now() / 1000);
+    const period = Math.floor(now / 60) + offset;
+    
+    // Create a deterministic but "random-looking" value by combining seed and period
+    let hash = 0;
+    const input = `${this.seed}-${period}`;
+    
+    // Simple string hash algorithm
+    for (let i = 0; i < input.length; i++) {
+      hash = ((hash << 5) - hash) + input.charCodeAt(i);
+      hash |= 0; // Convert to 32bit integer
+    }
+    
+    // Ensure positive value and take modulo 1000000 to get 6 digits
+    hash = Math.abs(hash) % 1000000;
+    
+    // Pad with leading zeros if necessary
+    return hash.toString().padStart(6, '0');
+  }
 }
 
 // ========== Render the App ==========

@@ -5,13 +5,17 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>OTPify</title>
   <link rel="stylesheet" href="styles.css">
-  <script src="https://unpkg.com/react@17/umd/react.production.min.js"></script>
-  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/otpauth@8.0.3/dist/otpauth.umd.min.js"></script>
-  <script src="utils/rsaSimulator.js"></script>
+  <!-- Include React libraries from CDN -->
+  <script src="https://unpkg.com/react@17/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@17/umd/react-dom.production.min.js" crossorigin></script>
+  <!-- Include TOTP library from CDN -->
+  <script src="https://unpkg.com/otpauth@7.0.5/dist/otpauth.min.js"></script>
+  <!-- Include RSA SecurID library -->
+  <script src="utils/rsa-secureid.js"></script>
 </head>
 <body>
   <div id="root"></div>
+  <!-- Include the bundled popup script -->
   <script src="bundled/popup-bundle.js"></script>
 </body>
 </html>
