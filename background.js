@@ -8,11 +8,19 @@ try {
   // Listen for the alarm and send a message to the popup to refresh tokens
   browserAPI.alarms.onAlarm.addListener((alarm) => {
     if (alarm.name === "refreshTokens") {
-      browserAPI.runtime.sendMessage({ action: "refreshTokens" })
-        .catch(error => {
-          // It's common for this to error if no popup is open to receive the message
-          console.debug('Error sending refresh message:', error);
-        });
+      // Check if popup exists before sending message
+      browserAPI.runtime.getBackgroundPage(() => {
+        // Note: We don't need to handle errors here because we're checking if popup exists
+        try {
+          // We use runtime.sendMessage but quietly ignore any connection errors
+          // that occur when the popup is not open
+          browserAPI.runtime.sendMessage({ action: "refreshTokens" }).catch(() => {
+            // Silently ignore connection errors - this is normal when popup is closed
+          });
+        } catch (error) {
+          // Silently ignore errors
+        }
+      });
     }
   });
   

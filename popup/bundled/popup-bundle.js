@@ -27,27 +27,43 @@ const TokenCard = (props) => {
         
         if (token.type === 'TOTP') {
           // For TOTP, use the OTPAuth library
-          const totp = new OTPAuth.TOTP({
-            issuer: token.name,
-            label: token.account,
-            algorithm: 'SHA1',
-            digits: 6,
-            period: 30,
-            secret: OTPAuth.Secret.fromBase32(token.secret)
-          });
-          
-          current = totp.generate();
-          
-          // Generate next token (for next period)
-          const nextPeriod = period + 1;
-          const nextTimestamp = nextPeriod * 30 * 1000;
-          next = totp.generate({ timestamp: nextTimestamp });
+          try {
+            const totp = new OTPAuth.TOTP({
+              issuer: token.name,
+              label: token.account,
+              algorithm: 'SHA1',
+              digits: 6,
+              period: 30,
+              secret: OTPAuth.Secret.fromBase32(token.secret)
+            });
+            
+            current = totp.generate();
+            
+            // Generate next token (for next period)
+            const nextPeriod = period + 1;
+            const nextTimestamp = nextPeriod * 30 * 1000;
+            next = totp.generate({ timestamp: nextTimestamp });
+          } catch (error) {
+            console.error('Error generating TOTP:', error);
+            current = 'Error';
+            next = 'Error';
+          }
         } else if (token.type === 'RSA') {
           // For RSA, normally we'd use RSA-specific libraries
           // This is a simplified simulation
-          const rsaGenerator = new RSASecurID.TokenGenerator(token.secret);
-          current = rsaGenerator.getTokenCode();
-          next = rsaGenerator.getNextTokenCode();
+          try {
+            if (typeof RSASecurID !== 'undefined' && typeof RSASecurID.TokenGenerator === 'function') {
+              const rsaGenerator = new RSASecurID.TokenGenerator(token.secret);
+              current = rsaGenerator.getTokenCode();
+              next = rsaGenerator.getNextTokenCode();
+            } else {
+              throw new Error('RSA SecurID library not loaded');
+            }
+          } catch (error) {
+            console.error('Error generating RSA token:', error);
+            current = 'Error';
+            next = 'Error';
+          }
         }
         
         // Format tokens with a space in the middle (e.g., "123 456")
@@ -108,13 +124,13 @@ const TokenCard = (props) => {
   return (
     <div className="token-card">
       <div className="token-header">
-        <h3>{token.name}</h3>
-        <span className="token-type">{token.type}</span>
+        <h3>{token.name || 'Unnamed Token'}</h3>
+        <span className="token-type">{token.type || 'TOTP'}</span>
       </div>
       
       <div className="token-detail">
         <label>Account</label>
-        <p>{token.account}</p>
+        <p>{token.account || 'No account'}</p>
       </div>
       
       <div className="token-detail">
@@ -355,13 +371,21 @@ const App = () => {
   const [tokens, setTokens] = useState([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   // Load tokens from storage when component mounts
   useEffect(() => {
     const loadTokens = async () => {
-      const storedTokens = await getTokens();
-      setTokens(storedTokens || []);
-      setLoading(false);
+      try {
+        const storedTokens = await getTokens();
+        setTokens(storedTokens || []);
+        setError(null);
+      } catch (e) {
+        console.error('Error loading tokens:', e);
+        setError('Could not load tokens');
+      } finally {
+        setLoading(false);
+      }
     };
     
     loadTokens();
@@ -371,11 +395,15 @@ const App = () => {
       loadTokens();
     };
     
-    window.addEventListener('refreshTokens', handleRefresh);
-    
-    return () => {
-      window.removeEventListener('refreshTokens', handleRefresh);
-    };
+    try {
+      window.addEventListener('refreshTokens', handleRefresh);
+      
+      return () => {
+        window.removeEventListener('refreshTokens', handleRefresh);
+      };
+    } catch (e) {
+      console.error('Error setting up refresh listener:', e);
+    }
   }, []);
   
   // Brand icon component
@@ -389,8 +417,14 @@ const App = () => {
   );
   
   const handleAddToken = async (newToken) => {
-    setTokens([...tokens, newToken]);
-    setShowAddForm(false);
+    try {
+      setTokens([...tokens, newToken]);
+      setShowAddForm(false);
+      setError(null);
+    } catch (e) {
+      console.error('Error adding token:', e);
+      setError('Could not add token');
+    }
   };
   
   if (loading) {
@@ -413,6 +447,8 @@ const App = () => {
         </button>
       </div>
       
+      {error && <div className="error-message">{error}</div>}
+      
       {showAddForm ? (
         <AddTokenForm onAddToken={handleAddToken} onCancel={() => setShowAddForm(false)} />
       ) : (
@@ -433,23 +469,33 @@ const App = () => {
   );
 };
 
-// Check if the browser is in dark mode
-const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
-document.body.classList.toggle('dark-theme', isDarkMode);
-
-// Listen for changes in color scheme
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
-  document.body.classList.toggle('dark-theme', event.matches);
-});
-
-// Initialize the React app when the DOM is loaded
+// Make sure React and ReactDOM are defined before initializing
 document.addEventListener('DOMContentLoaded', () => {
   const root = document.getElementById('root');
+  
+  if (!root) {
+    console.error('Root element not found');
+    document.body.innerHTML = '<div class="error-message">Error: Root element not found</div>';
+    return;
+  }
+  
+  // Check if the browser is in dark mode and apply theme
+  try {
+    const isDarkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    document.body.classList.toggle('dark-theme', isDarkMode);
+
+    // Listen for changes in color scheme
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+      document.body.classList.toggle('dark-theme', event.matches);
+    });
+  } catch (e) {
+    console.warn('Could not detect color scheme:', e);
+  }
   
   // Make sure React and ReactDOM are defined
   if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
     console.error('React or ReactDOM is not defined');
-    root.innerHTML = '<div class="error-message">Error: Could not load React</div>';
+    root.innerHTML = '<div class="error-message">Error: Could not load React libraries</div>';
     return;
   }
   
@@ -468,13 +514,16 @@ try {
       if (message.action === "refreshTokens") {
         // Publish a custom event that the App component will listen for
         window.dispatchEvent(new CustomEvent('refreshTokens'));
+        return true; // Indicates async response
       }
     });
   } else if (typeof chrome !== 'undefined') {
     // Fallback for Chrome
-    chrome.runtime.onMessage.addListener((message) => {
+    chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === "refreshTokens") {
         window.dispatchEvent(new CustomEvent('refreshTokens'));
+        sendResponse({success: true});
+        return true; // Indicates async response
       }
     });
   } else {
