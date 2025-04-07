@@ -17,12 +17,13 @@
   },
   "permissions": [
     "storage",
-    "identity",
     "alarms"
   ],
   "browser_specific_settings": {
     "gecko": {
-      "id": "otpify@example.com"
+      "id": "otpify@example.com",
+      "strict_min_version": "57.0"
     }
-  }
+  },
+  "content_security_policy": "script-src 'self' https://unpkg.com; object-src 'self'"
 }
