@@ -20,53 +20,49 @@ const isPopupOpen = (callback) => {
  * @param {Object} message - The message to send
  */
 const sendMessageToPopupSafely = (message) => {
-  // Check popup status with a more reliable method
-  browserAPI.runtime.getBackgroundPage(function(backgroundPage) {
-    try {
-      // Check if any popup views exist
-      const views = browserAPI.extension.getViews({ type: 'popup' });
-      if (views && views.length > 0) {
-        // Detect Firefox (uses promises) vs Chrome (uses callbacks)
-        const isFirefox = typeof browser !== 'undefined';
-        
-        if (isFirefox) {
-          // Firefox implementation with Promise - silently handle connection errors
-          browser.runtime.sendMessage(message)
-            .then(response => {
-              // Message sent successfully
-            })
-            .catch(error => {
-              // Ignore expected connection errors
-              if (error && error.message && 
-                 !error.message.includes('receiving end does not exist') && 
-                 !error.message.includes('Could not establish connection')) {
-                // Only log unexpected errors
-                console.log('Error sending message:', error);
-              }
-            });
-        } else {
-          // Chrome implementation with callback
-          chrome.runtime.sendMessage(message, response => {
-            // Ignore expected connection errors
-            if (chrome.runtime.lastError) {
-              const errorMsg = chrome.runtime.lastError.message || '';
-              if (!errorMsg.includes('receiving end does not exist') && 
-                  !errorMsg.includes('Could not establish connection')) {
-                console.log('Error sending message:', chrome.runtime.lastError);
-              }
-            }
-          });
-        }
-      }
-    } catch (error) {
-      // Only log unexpected errors
-      if (error && error.message && 
-         !error.message.includes('receiving end does not exist') && 
-         !error.message.includes('Could not establish connection')) {
-        console.log('Error in sendMessageToPopupSafely:', error);
-      }
+  try {
+    // First check if the popup is open before attempting to send messages
+    const views = browserAPI.extension.getViews({ type: 'popup' });
+    if (!views || views.length === 0) {
+      // Popup isn't open, no need to send a message
+      return;
     }
-  });
+    
+    // Popup is open, attempt to send the message
+    const isFirefox = typeof browser !== 'undefined';
+    
+    if (isFirefox) {
+      // Firefox implementation with Promise - silently handle connection errors
+      browser.runtime.sendMessage(message)
+        .catch(error => {
+          // Only log unexpected errors (not connection errors which are expected)
+          if (error && error.message && 
+              !error.message.includes('receiving end does not exist') && 
+              !error.message.includes('Could not establish connection')) {
+            console.log('Error sending message:', error);
+          }
+        });
+    } else {
+      // Chrome implementation with callback
+      chrome.runtime.sendMessage(message, response => {
+        // Ignore expected connection errors
+        if (chrome.runtime.lastError) {
+          const errorMsg = chrome.runtime.lastError.message || '';
+          if (!errorMsg.includes('receiving end does not exist') && 
+              !errorMsg.includes('Could not establish connection')) {
+            console.log('Error sending message:', chrome.runtime.lastError);
+          }
+        }
+      });
+    }
+  } catch (error) {
+    // Only log unexpected errors
+    if (error && error.message && 
+        !error.message.includes('receiving end does not exist') && 
+        !error.message.includes('Could not establish connection')) {
+      console.log('Error in sendMessageToPopupSafely:', error);
+    }
+  }
 };
 
 /**

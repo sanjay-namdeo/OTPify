@@ -48,42 +48,7 @@ class TokenGenerator {
   }
 
   /**
-   * Generate a deterministic hash value from the input
-   * @param {string} input - The input string to hash
-   * @returns {string} 6-digit token
-   * @private
-   */
-  async _generateHash(input) {
-    try {
-      // Use TextEncoder to convert string to byte array
-      const encoder = new TextEncoder();
-      const data = encoder.encode(input);
-      
-      // Generate hash using Web Crypto API
-      const hashBuffer = await crypto.subtle.digest(this.algorithm, data);
-      
-      // Convert hash to a number and take modulo 1000000 to get 6 digits
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      let hashNum = 0;
-      
-      // Use first 4 bytes to create a number
-      for (let i = 0; i < 4; i++) {
-        hashNum = (hashNum << 8) + hashArray[i];
-      }
-      
-      // Ensure positive value and take modulo 1000000 to get 6 digits
-      hashNum = Math.abs(hashNum) % 1000000;
-      
-      // Pad with leading zeros if necessary
-      return hashNum.toString().padStart(6, '0');
-    } catch (error) {
-      // Fallback to synchronous method if Web Crypto API is not available
-      return this._generateHashSync(input);
-    }
-  }
-
-  /**
-   * Synchronous hash generation fallback
+   * Synchronous hash generation
    * @param {string} input - The input string to hash
    * @returns {string} 6-digit token
    * @private
@@ -105,9 +70,5 @@ class TokenGenerator {
   }
 }
 
-// Export for both browser and Node.js environments
-if (typeof module !== 'undefined' && typeof module.exports !== 'undefined') {
-  module.exports = { TokenGenerator };
-} else {
-  window.RSASecurID = { TokenGenerator };
-}
+// Export for browser environments
+window.RSASecurID = { TokenGenerator };

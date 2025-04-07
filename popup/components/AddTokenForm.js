@@ -10,7 +10,7 @@ const AddTokenForm = ({ onAddToken, onCancel }) => {
     type: 'TOTP',
     secret: '',
     notes: '',
-    algorithm: 'SHA1',
+    algorithm: 'SHA1', // Default for TOTP
     digits: '6',
     period: '30',
     serialNumber: ''  // For RSA tokens
@@ -21,10 +21,21 @@ const AddTokenForm = ({ onAddToken, onCancel }) => {
   
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData(prevData => ({
-      ...prevData,
-      [name]: value
-    }));
+    
+    // If the user changes the token type, update the algorithm to the appropriate default
+    if (name === 'type') {
+      setFormData(prevData => ({
+        ...prevData,
+        [name]: value,
+        // Set default algorithm based on token type
+        algorithm: value === 'TOTP' ? 'SHA1' : 'SHA-256'
+      }));
+    } else {
+      setFormData(prevData => ({
+        ...prevData,
+        [name]: value
+      }));
+    }
     
     // Clear error when user types
     if (error) setError('');
@@ -135,17 +146,33 @@ const AddTokenForm = ({ onAddToken, onCancel }) => {
         </div>
         
         {formData.type === 'RSA' && (
-          <div className="form-group">
-            <label htmlFor="serialNumber">Serial Number</label>
-            <input
-              type="text"
-              id="serialNumber"
-              name="serialNumber"
-              value={formData.serialNumber}
-              onChange={handleChange}
-              placeholder="B8007363"
-            />
-          </div>
+          <>
+            <div className="form-group">
+              <label htmlFor="serialNumber">Serial Number</label>
+              <input
+                type="text"
+                id="serialNumber"
+                name="serialNumber"
+                value={formData.serialNumber}
+                onChange={handleChange}
+                placeholder="B8007363"
+              />
+            </div>
+            <div className="form-group">
+              <label htmlFor="algorithm">Algorithm</label>
+              <select
+                id="algorithm"
+                name="algorithm"
+                value={formData.algorithm}
+                onChange={handleChange}
+              >
+                <option value="SHA-256">SHA-256</option>
+                <option value="SHA-1">SHA-1</option>
+                <option value="SHA-384">SHA-384</option>
+                <option value="SHA-512">SHA-512</option>
+              </select>
+            </div>
+          </>
         )}
         
         {formData.type === 'TOTP' && (
