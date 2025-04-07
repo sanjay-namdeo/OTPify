@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTPify Firefox Extension</title>
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      margin: 0;
+      padding: 30px;
+      background-color: #f9f9f9;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    
+    h1 {
+      color: #4CAF50;
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    
+    .extension-info {
+      background-color: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      margin-bottom: 30px;
+    }
+    
+    .screenshot {
+      margin: 20px 0;
+      text-align: center;
+    }
+    
+    .screenshot img {
+      max-width: 100%;
+      border-radius: 8px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+      border: 1px solid #ddd;
+    }
+    
+    .features {
+      margin-top: 30px;
+    }
+    
+    .feature {
+      background-color: white;
+      padding: 20px;
+      margin-bottom: 15px;
+      border-radius: 8px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+    }
+    
+    .feature h3 {
+      color: #2E7D32;
+      margin-top: 0;
+    }
+    
+    code {
+      background-color: #f0f0f0;
+      padding: 2px 5px;
+      border-radius: 3px;
+      font-family: monospace;
+    }
+    
+    .button {
+      display: inline-block;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      margin: 10px 0;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: bold;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .button:hover {
+      background-color: #3e8e41;
+    }
+    
+    .note {
+      background-color: #e8f5e9;
+      border-left: 5px solid #4CAF50;
+      padding: 15px;
+      margin: 20px 0;
+      border-radius: 0 8px 8px 0;
+    }
+  </style>
+</head>
+<body>
+  <h1>OTPify Firefox Extension</h1>
+  
+  <div class="extension-info">
+    <h2>A Secure Token Generator for Firefox</h2>
+    <p>OTPify is a Firefox extension that securely generates and manages TOTP and RSA tokens with a modern, theme-aware UI. This extension is perfect for managing your two-factor authentication codes in one place.</p>
+    
+    <div class="screenshot">
+      <h3>Extension Preview</h3>
+      <div style="max-width: 350px; margin: 0 auto; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; background-color: #f5f5f5;">
+        <div style="background-color: #f0f0f0; padding: 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; align-items: center;">
+          <div style="display: flex; align-items: center;">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+              <rect width="24" height="24" rx="12" fill="#4CAF50" />
+              <circle cx="8" cy="12" r="2" fill="#000" />
+              <circle cx="12" cy="12" r="2" fill="#000" />
+              <circle cx="16" cy="12" r="2" fill="#000" />
+            </svg>
+            <strong style="margin-left: 8px; color: #333;">OTPify</strong>
+          </div>
+          <button style="background-color: #4CAF50; color: white; border: none; border-radius: 4px; padding: 6px 12px; font-size: 12px;">Add Token</button>
+        </div>
+        <div style="padding: 15px;">
+          <div style="background-color: white; border-radius: 8px; padding: 12px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+              <strong>Work Email</strong>
+              <span style="background-color: #e8f5e9; color: #388e3c; padding: 2px 6px; border-radius: 4px; font-size: 12px;">TOTP</span>
+            </div>
+            <div style="margin-bottom: 6px; font-size: 12px; color: #666;">Account</div>
+            <div style="margin-bottom: 10px;">user@company.com</div>
+            <div style="margin-bottom: 6px; font-size: 12px; color: #666;">Current Token</div>
+            <div style="font-family: monospace; font-size: 18px; letter-spacing: 1px;">123 456</div>
+            <div style="margin-bottom: 6px; font-size: 12px; color: #666;">Next Token</div>
+            <div style="font-family: monospace; font-size: 18px; letter-spacing: 1px;">789 012</div>
+            <div style="height: 4px; background-color: #e0e0e0; border-radius: 2px; margin-top: 10px; overflow: hidden;">
+              <div style="width: 70%; height: 100%; background-color: #4CAF50; border-radius: 2px;"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <div class="features">
+    <h2>Key Features</h2>
+    
+    <div class="feature">
+      <h3>🔐 Multi-Token Support</h3>
+      <p>OTPify supports both TOTP (Time-based One-Time Password) and RSA SecurID tokens. This means you can use it for almost any service that requires two-factor authentication.</p>
+    </div>
+    
+    <div class="feature">
+      <h3>⏱️ Visual Progress Indicator</h3>
+      <p>The extension includes a color-changing progress bar that shows how much time is left before a token expires. Green indicates plenty of time, yellow means it's getting close, and red warns that the token will expire very soon.</p>
+    </div>
+    
+    <div class="feature">
+      <h3>🌗 Theme Adaptation</h3>
+      <p>OTPify automatically adapts to Firefox's light or dark theme for a seamless browsing experience.</p>
+    </div>
+    
+    <div class="feature">
+      <h3>🔒 Secure Storage</h3>
+      <p>Your token secrets are securely stored using Firefox's built-in security features, ensuring that your sensitive authentication data remains protected.</p>
+    </div>
+  </div>
+  
+  <div class="note">
+    <p><strong>Note:</strong> This is a demo preview. To use the actual extension, you would need to install it in Firefox.</p>
+  </div>
+</body>
+</html>

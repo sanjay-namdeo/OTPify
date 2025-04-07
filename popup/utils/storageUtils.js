@@ -1,18 +1,27 @@
+// Define browser API object - Firefox uses browser, Chrome uses chrome
+const browserAPI = typeof browser !== 'undefined' ? browser : chrome;
+
 /**
- * Securely saves a token using Firefox's password manager
+ * Securely saves a token using browser storage
  * @param {Object} token - The token to save
- * @returns {Promise<void>}
+ * @returns {Promise<boolean>} - Whether the save was successful
  */
 export const saveToken = async (token) => {
   try {
+    // Ensure token has an ID
+    if (!token.id) {
+      token.id = Date.now().toString();
+    }
+    
     // Get existing tokens
     const tokens = await getTokens();
     
     // Add the new token
     const updatedTokens = [...tokens, token];
     
-    // Save to local storage for now (will be replaced with secure storage)
-    await browser.storage.local.set({ tokens: updatedTokens });
+    // Save to local storage
+    await browserAPI.storage.local.set({ tokens: updatedTokens });
+    console.log('Token saved successfully');
     
     // Firefox doesn't have a direct password manager API for extensions,
     // but we can use the identity API to store credentials.
@@ -29,7 +38,7 @@ export const saveToken = async (token) => {
     return true;
   } catch (error) {
     console.error('Error saving token:', error);
-    throw error;
+    return false;
   }
 };
 
@@ -39,8 +48,9 @@ export const saveToken = async (token) => {
  */
 export const getTokens = async () => {
   try {
-    const { tokens } = await browser.storage.local.get('tokens');
-    return tokens || [];
+    const result = await browserAPI.storage.local.get('tokens');
+    console.log('Retrieved tokens from storage');
+    return result.tokens || [];
   } catch (error) {
     console.error('Error retrieving tokens:', error);
     return [];
@@ -61,7 +71,8 @@ export const deleteToken = async (tokenId) => {
     const updatedTokens = tokens.filter(token => token.id !== tokenId);
     
     // Save the updated tokens
-    await browser.storage.local.set({ tokens: updatedTokens });
+    await browserAPI.storage.local.set({ tokens: updatedTokens });
+    console.log('Token deleted successfully');
     
     return true;
   } catch (error) {
@@ -81,16 +92,22 @@ export const updateToken = async (tokenId, updatedData) => {
     // Get existing tokens
     const tokens = await getTokens();
     
-    // Find and update the token
-    const updatedTokens = tokens.map(token => {
-      if (token.id === tokenId) {
-        return { ...token, ...updatedData };
-      }
-      return token;
-    });
+    // Find the token to update
+    const tokenIndex = tokens.findIndex(token => token.id === tokenId);
+    
+    // If token not found, return false
+    if (tokenIndex === -1) {
+      console.error('Token not found for update:', tokenId);
+      return false;
+    }
+    
+    // Update the token
+    const updatedTokens = [...tokens];
+    updatedTokens[tokenIndex] = { ...tokens[tokenIndex], ...updatedData };
     
     // Save the updated tokens
-    await browser.storage.local.set({ tokens: updatedTokens });
+    await browserAPI.storage.local.set({ tokens: updatedTokens });
+    console.log('Token updated successfully');
     
     return true;
   } catch (error) {

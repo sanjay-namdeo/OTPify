@@ -1,4 +1,5 @@
 import { saveToken } from '../utils/storageUtils.js';
+import { validateSecret } from '../utils/tokenUtils.js';
 
 const { useState } = React;
 
@@ -16,6 +17,7 @@ const AddTokenForm = ({ onAddToken, onCancel }) => {
   });
   
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -23,18 +25,32 @@ const AddTokenForm = ({ onAddToken, onCancel }) => {
       ...prevData,
       [name]: value
     }));
+    
+    // Clear error when user types
+    if (error) setError('');
   };
   
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
-    // Validate form
-    if (!formData.name || !formData.account || !formData.secret) {
-      setError('Please fill in all required fields');
-      return;
-    }
+    setIsSubmitting(true);
     
     try {
+      // Validate form
+      if (!formData.name || !formData.account || !formData.secret) {
+        setError('Please fill in all required fields');
+        setIsSubmitting(false);
+        return;
+      }
+      
+      // Validate secret based on token type
+      if (!validateSecret(formData.type, formData.secret)) {
+        setError(`Invalid ${formData.type} secret. Please check the format.`);
+        setIsSubmitting(false);
+        return;
+      }
+      
+      console.log('Creating new token with data:', formData);
+      
       // Create token object
       const newToken = {
         id: Date.now().toString(),
@@ -43,13 +59,19 @@ const AddTokenForm = ({ onAddToken, onCancel }) => {
       };
       
       // Save token to secure storage
-      await saveToken(newToken);
+      const success = await saveToken(newToken);
       
-      // Notify parent component
-      onAddToken(newToken);
-      
+      if (success) {
+        console.log('Token saved successfully');
+        // Notify parent component
+        onAddToken(newToken);
+      } else {
+        throw new Error('Failed to save token to storage');
+      }
     } catch (err) {
-      setError(`Failed to save token: ${err.message}`);
+      console.error('Error in token submission:', err);
+      setError(`Failed to save token: ${err.message || 'Unknown error'}`);
+      setIsSubmitting(false);
     }
   };
   

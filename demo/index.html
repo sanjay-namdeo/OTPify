@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OTPify Extension Demo</title>
+  <style>
+    :root {
+      --primary-color: #4CAF50;
+      --secondary-color: #2E7D32;
+      --dark-color: #1B5E20;
+      --light-color: #A5D6A7;
+      --background-color: #FFFFFF;
+      --text-color: #212121;
+      --card-background: #F5F5F5;
+      --border-color: #E0E0E0;
+      --success-color: #4CAF50;
+      --warning-color: #FFC107;
+      --danger-color: #F44336;
+      --shadow-color: rgba(0, 0, 0, 0.1);
+      --input-background: #F5F5F5;
+      --button-text-color: white;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+      margin: 0;
+      padding: 0;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 2rem;
+    }
+    
+    h1 {
+      color: var(--primary-color);
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+    
+    .container {
+      max-width: 1200px;
+      width: 100%;
+      padding: 0 1rem;
+    }
+    
+    .preview-container {
+      background-color: #fff;
+      border-radius: 10px;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+    
+    .demo-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+    
+    .extension-demo {
+      width: 350px;
+      margin: 0 auto;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background-color: white;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+      overflow: hidden;
+    }
+    
+    .extension-header {
+      padding: 16px;
+      background-color: #f8f9fa;
+      border-bottom: 1px solid #ddd;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    
+    .extension-title {
+      font-weight: bold;
+      color: var(--primary-color);
+      display: flex;
+      align-items: center;
+    }
+    
+    .extension-title svg {
+      margin-right: 8px;
+    }
+    
+    .extension-content {
+      padding: 16px;
+    }
+    
+    .token-card {
+      background-color: var(--card-background);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 2px 4px var(--shadow-color);
+    }
+    
+    .token-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 12px;
+    }
+    
+    .token-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin: 0;
+    }
+    
+    .token-type {
+      font-size: 12px;
+      background-color: var(--light-color);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    
+    .token-info {
+      margin-bottom: 8px;
+    }
+    
+    .token-label {
+      font-size: 12px;
+      color: var(--text-color);
+      opacity: 0.7;
+    }
+    
+    .token-value {
+      font-family: 'Courier New', monospace;
+      font-size: 20px;
+      letter-spacing: 2px;
+      font-weight: 600;
+    }
+    
+    .progress-container {
+      width: 100%;
+      height: 6px;
+      background-color: var(--border-color);
+      border-radius: 3px;
+      margin-top: 16px;
+      overflow: hidden;
+    }
+    
+    .progress-bar {
+      height: 100%;
+      border-radius: 3px;
+      transition: width 1s linear, background-color 0.3s ease;
+      width: 70%;
+      background-color: var(--success-color);
+    }
+    
+    .button {
+      background-color: var(--primary-color);
+      color: var(--button-text-color);
+      border: none;
+      border-radius: 4px;
+      padding: 8px 16px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: background-color 0.2s ease;
+    }
+    
+    .button:hover {
+      background-color: var(--secondary-color);
+    }
+    
+    .theme-toggle {
+      position: fixed;
+      bottom: 2rem;
+      right: 2rem;
+      background-color: var(--primary-color);
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 50px;
+      height: 50px;
+      font-size: 20px;
+      cursor: pointer;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    /* Dark theme */
+    body.dark-theme {
+      background-color: #212121;
+      color: #f5f5f5;
+    }
+    
+    body.dark-theme .preview-container {
+      background-color: #333;
+      box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    body.dark-theme .extension-demo {
+      border-color: #444;
+      background-color: #333;
+    }
+    
+    body.dark-theme .extension-header {
+      background-color: #444;
+      border-bottom: 1px solid #555;
+    }
+    
+    body.dark-theme .token-card {
+      background-color: #444;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    body.dark-theme .token-label {
+      color: #f5f5f5;
+    }
+    
+    .features {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1rem;
+      margin-top: 2rem;
+    }
+    
+    .feature-card {
+      background-color: white;
+      border-radius: 8px;
+      padding: 1.5rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    body.dark-theme .feature-card {
+      background-color: #444;
+    }
+    
+    .feature-icon {
+      color: var(--primary-color);
+      font-size: 2rem;
+      margin-bottom: 1rem;
+    }
+    
+    .github-link {
+      display: inline-block;
+      margin-top: 2rem;
+      background-color: #333;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 4px;
+      text-decoration: none;
+    }
+    
+    body.dark-theme .github-link {
+      background-color: #555;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>OTPify Firefox Extension</h1>
+    
+    <div class="preview-container">
+      <div class="demo-header">
+        <h2>Extension Preview</h2>
+        <button class="button" id="add-token">Add Demo Token</button>
+      </div>
+      
+      <div class="extension-demo">
+        <div class="extension-header">
+          <div class="extension-title">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <rect width="24" height="24" rx="12" fill="#4CAF50" />
+              <circle cx="8" cy="12" r="2" fill="#000" />
+              <circle cx="12" cy="12" r="2" fill="#000" />
+              <circle cx="16" cy="12" r="2" fill="#000" />
+            </svg>
+            OTPify
+          </div>
+          <button class="button">Add Token</button>
+        </div>
+        
+        <div class="extension-content">
+          <div class="token-card">
+            <div class="token-header">
+              <h3 class="token-title">Work Email</h3>
+              <span class="token-type">TOTP</span>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Account</div>
+              <div>user@company.com</div>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Current Token</div>
+              <div class="token-value">123456</div>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Next Token</div>
+              <div class="token-value">789012</div>
+            </div>
+            
+            <div class="progress-container">
+              <div class="progress-bar"></div>
+            </div>
+          </div>
+          
+          <div class="token-card">
+            <div class="token-header">
+              <h3 class="token-title">VPN Access</h3>
+              <span class="token-type">RSA</span>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Account</div>
+              <div>john.doe</div>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Current Token</div>
+              <div class="token-value">24680</div>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Next Token</div>
+              <div class="token-value">13579</div>
+            </div>
+            
+            <div class="progress-container">
+              <div class="progress-bar" style="width: 30%; background-color: var(--warning-color);"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="preview-container">
+      <h2>Features</h2>
+      
+      <div class="features">
+        <div class="feature-card">
+          <div class="feature-icon">🔐</div>
+          <h3>TOTP & RSA Support</h3>
+          <p>Generate both Time-based One-Time Passwords (TOTP) and RSA SecurID tokens.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🌓</div>
+          <h3>Theme Adaptation</h3>
+          <p>Automatically adapts to Firefox's light or dark theme for a seamless experience.</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">⏱️</div>
+          <h3>Visual Progress</h3>
+          <p>Color-changing progress bar indicates token expiration time (green, yellow, red).</p>
+        </div>
+        
+        <div class="feature-card">
+          <div class="feature-icon">🔒</div>
+          <h3>Secure Storage</h3>
+          <p>Tokens are securely stored using Firefox's built-in security features.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <button class="theme-toggle" id="theme-toggle">🌓</button>
+  
+  <script>
+    // Demo functionality
+    document.addEventListener('DOMContentLoaded', () => {
+      // Theme toggle
+      const themeToggle = document.getElementById('theme-toggle');
+      themeToggle.addEventListener('click', () => {
+        document.body.classList.toggle('dark-theme');
+      });
+      
+      // Animate progress bars
+      const progressBars = document.querySelectorAll('.progress-bar');
+      progressBars.forEach(bar => {
+        setInterval(() => {
+          let width = parseInt(bar.style.width) || 70;
+          width = width - 1;
+          if (width <= 0) width = 70;
+          bar.style.width = width + '%';
+          
+          // Change color based on remaining time
+          if (width > 50) {
+            bar.style.backgroundColor = 'var(--success-color)';
+          } else if (width > 25) {
+            bar.style.backgroundColor = 'var(--warning-color)';
+          } else {
+            bar.style.backgroundColor = 'var(--danger-color)';
+          }
+        }, 500);
+      });
+      
+      // Add demo token button
+      const addTokenBtn = document.getElementById('add-token');
+      if (addTokenBtn) {
+        addTokenBtn.addEventListener('click', () => {
+          const tokenContainer = document.querySelector('.extension-content');
+          const newToken = document.createElement('div');
+          newToken.className = 'token-card';
+          newToken.innerHTML = `
+            <div class="token-header">
+              <h3 class="token-title">GitHub</h3>
+              <span class="token-type">TOTP</span>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Account</div>
+              <div>dev@github.com</div>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Current Token</div>
+              <div class="token-value">357159</div>
+            </div>
+            
+            <div class="token-info">
+              <div class="token-label">Next Token</div>
+              <div class="token-value">246810</div>
+            </div>
+            
+            <div class="progress-container">
+              <div class="progress-bar" style="width: 60%; background-color: var(--success-color);"></div>
+            </div>
+          `;
+          
+          tokenContainer.appendChild(newToken);
+          
+          // Animate the new progress bar
+          const newProgressBar = newToken.querySelector('.progress-bar');
+          setInterval(() => {
+            let width = parseInt(newProgressBar.style.width) || 60;
+            width = width - 1;
+            if (width <= 0) width = 60;
+            newProgressBar.style.width = width + '%';
+            
+            // Change color based on remaining time
+            if (width > 50) {
+              newProgressBar.style.backgroundColor = 'var(--success-color)';
+            } else if (width > 25) {
+              newProgressBar.style.backgroundColor = 'var(--warning-color)';
+            } else {
+              newProgressBar.style.backgroundColor = 'var(--danger-color)';
+            }
+          }, 500);
+        });
+      }
+    });
+  </script>
+</body>
+</html>
