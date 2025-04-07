@@ -5,17 +5,12 @@
  * @returns {string} - The generated token
  */
 export const generateToken = (token, period) => {
-  try {
-    if (token.type === 'TOTP') {
-      return generateTOTP(token, period);
-    } else if (token.type === 'RSA') {
-      return generateRSA(token);
-    }
-    return 'INVALID';
-  } catch (error) {
-    console.error('Error generating token:', error);
-    return 'ERROR';
+  if (token.type === 'TOTP') {
+    return generateTOTPToken(token, period);
+  } else if (token.type === 'RSA') {
+    return generateRSAToken(token);
   }
+  return null;
 };
 
 /**
@@ -24,31 +19,24 @@ export const generateToken = (token, period) => {
  * @param {number} period - The time period to generate the token for
  * @returns {string} - The generated TOTP token
  */
-const generateTOTP = (token, period) => {
-  // Parse configuration
-  const {
-    secret,
-    algorithm = 'SHA1',
-    digits = '6',
-    period: tokenPeriod = '30'
-  } = token;
-  
-  // Create TOTP instance
-  const totp = new OTPAuth.TOTP({
-    secret: OTPAuth.Secret.fromBase32(secret.replace(/\s/g, '')),
-    algorithm: algorithm,
-    digits: parseInt(digits),
-    period: parseInt(tokenPeriod)
-  });
-  
-  // Generate token for specified period
-  if (period !== undefined) {
-    const timestamp = period * parseInt(tokenPeriod) * 1000;
-    return totp.generate({ timestamp });
+export const generateTOTPToken = (token, period = 30) => {
+  try {
+    // Create a new TOTP object
+    const totp = new OTPAuth.TOTP({
+      issuer: token.issuer || '',
+      label: token.account || '',
+      algorithm: token.algorithm || 'SHA1',
+      digits: token.digits || 6,
+      period: period,
+      secret: OTPAuth.Secret.fromBase32(token.secret)
+    });
+    
+    // Generate the token
+    return totp.generate();
+  } catch (error) {
+    console.error('Error generating TOTP token:', error);
+    return null;
   }
-  
-  // Generate current token
-  return totp.generate();
 };
 
 /**
@@ -56,19 +44,46 @@ const generateTOTP = (token, period) => {
  * @param {Object} token - The RSA token configuration
  * @returns {string} - The generated RSA token
  */
-const generateRSA = (token) => {
-  const { secret, serialNumber = '' } = token;
-  
-  // Use rsa-securid library to generate token
-  // The library is loaded globally from the CDN
+export const generateRSAToken = (token) => {
   try {
-    const rsa = RSASecurid.v2(secret, serialNumber);
-    const result = rsa.computeCode();
-    return result.code;
+    // Use our custom RSA simulator
+    const generator = new RSASecurID.TokenGenerator(token.secret);
+    return generator.getTokenCode();
   } catch (error) {
     console.error('Error generating RSA token:', error);
-    return 'ERROR';
+    return null;
   }
+};
+
+/**
+ * Gets the next token that will be generated
+ * @param {Object} token - The token configuration 
+ * @returns {string} - The next token
+ */
+export const getNextToken = (token) => {
+  if (token.type === 'TOTP') {
+    // For TOTP, generate token for next period
+    return generateTOTPToken(token, 30);
+  } else if (token.type === 'RSA') {
+    // For RSA, use the getNextTokenCode method
+    try {
+      const generator = new RSASecurID.TokenGenerator(token.secret);
+      return generator.getNextTokenCode();
+    } catch (error) {
+      console.error('Error generating next RSA token:', error);
+      return null;
+    }
+  }
+  return null;
+};
+
+/**
+ * Calculates the time remaining until the token refreshes
+ * @returns {number} - Seconds remaining
+ */
+export const getTimeRemaining = () => {
+  const now = Math.floor(Date.now() / 1000);
+  return 30 - (now % 30);
 };
 
 /**
@@ -78,19 +93,21 @@ const generateRSA = (token) => {
  * @returns {boolean} - Whether the secret is valid
  */
 export const validateSecret = (type, secret) => {
-  if (!secret) return false;
+  if (!secret || secret.trim() === '') {
+    return false;
+  }
   
   if (type === 'TOTP') {
-    // TOTP secrets should be base32 encoded
     try {
-      OTPAuth.Secret.fromBase32(secret.replace(/\s/g, ''));
+      // Try to parse it as a Base32 secret
+      OTPAuth.Secret.fromBase32(secret);
       return true;
-    } catch (e) {
+    } catch (error) {
       return false;
     }
   } else if (type === 'RSA') {
-    // RSA secrets are typically numeric
-    return /^[0-9]+$/.test(secret.replace(/\s/g, ''));
+    // RSA secrets should be at least 16 characters long
+    return secret.length >= 16;
   }
   
   return false;

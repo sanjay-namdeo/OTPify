@@ -15,7 +15,7 @@ A Firefox extension that securely generates and manages TOTP and RSA tokens with
 The OTPify extension generates One-Time Passwords (OTPs) directly in your browser:
 
 1. **TOTP Generation**: Uses the OTPAuth library to generate time-based tokens compatible with Google Authenticator, Authy, and similar services
-2. **RSA Token Simulation**: Simulates RSA SecurID tokens by using the RSA algorithm with a stored seed
+2. **RSA Token Simulation**: Simulates RSA SecurID tokens using a custom RSA simulator with a stored seed
 3. **Local Processing**: All token generation happens locally in your browser - no network requests needed
 4. **Secure Storage**: Token secrets are stored in Firefox's secure storage
 
@@ -33,7 +33,8 @@ This project uses:
 
 - JavaScript with React for the UI components
 - Firefox's WebExtension APIs for browser integration
-- OTPAuth and RSA-SecurID libraries for token generation
+- OTPAuth library for TOTP generation
+- Custom RSA simulator for RSA token generation
 
 ## Installation
 
@@ -44,6 +45,14 @@ To install the development version:
 3. Click "This Firefox" in the sidebar
 4. Click "Load Temporary Add-on..."
 5. Select any file in the extension directory
+
+## Demo Page
+
+The project includes a demo page that showcases the extension's UI and functionality without requiring Firefox installation. To view the demo:
+
+1. Open the demo/index.html file in any browser
+2. The demo shows sample token cards with animated progress bars
+3. Toggle between light and dark themes with the button at the top
 
 ## License
 

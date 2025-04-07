@@ -1,24 +1,32 @@
-// Sample tokens for demonstration
+/**
+ * Sample demo tokens for the OTPify extension demo
+ */
 const demoTokens = [
   {
-    id: "1",
-    name: "Work Email",
-    account: "user@company.com",
-    type: "TOTP",
-    secret: "JBSWY3DPEHPK3PXP" // This is a standard demo base32 secret
+    id: '1',
+    name: 'GitHub',
+    type: 'TOTP',
+    account: 'user@example.com',
+    issuer: 'GitHub',
+    secret: 'JBSWY3DPEHPK3PXP', // Example secret - not a real one
+    algorithm: 'SHA1',
+    digits: 6
   },
   {
-    id: "2",
-    name: "GitHub",
-    account: "developer",
-    type: "TOTP",
-    secret: "HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ"
+    id: '2',
+    name: 'AWS Account',
+    type: 'TOTP',
+    account: 'admin@company.com',
+    issuer: 'Amazon Web Services',
+    secret: 'HXDMVJECJJWSRB3HWIZR4IFUGFTMXBOZ', // Example secret - not a real one
+    algorithm: 'SHA1',
+    digits: 6
   },
   {
-    id: "3",
-    name: "VPN Access",
-    account: "admin@vpn.local",
-    type: "RSA",
-    secret: "1234567890ABCDEF" // Demo hexadecimal secret for RSA
+    id: '3',
+    name: 'VPN Access',
+    type: 'RSA',
+    account: 'john.doe',
+    secret: 'f3d8f9a1c6e0b5d2' // Example seed - not a real one
   }
 ];
